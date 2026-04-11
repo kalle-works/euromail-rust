@@ -415,7 +415,7 @@ pub struct Suppression {
     pub id: String,
     pub account_id: String,
     pub email_address: String,
-    /// Reason for suppression: `"hard_bounce"`, `"complaint"`, or `"manual"`.
+    /// Reason for suppression: `"hard_bounce"`, `"complaint"`, `"manual"`, `"unsubscribe"`, or `"fbl"` (ISP feedback loop).
     pub reason: String,
     /// The email that triggered this suppression, if any.
     pub source_email_id: Option<String>,
@@ -1097,6 +1097,55 @@ pub struct PortalParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortalResponse {
     pub portal_url: String,
+}
+
+// ---- Link Click Stats ----
+
+/// Per-link click statistics for a sent email.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LinkClickStat {
+    /// The tracked URL.
+    pub url: String,
+    /// Total number of clicks on this link.
+    pub clicks: i64,
+    /// Number of unique recipients who clicked this link.
+    pub unique_clicks: i64,
+}
+
+// ---- Insight Types ----
+
+/// A single finding produced by the AI insights engine.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InsightFinding {
+    /// Severity level: `"info"`, `"warn"`, or `"critical"`.
+    pub severity: String,
+    /// Functional area: `"deliverability"`, `"reputation"`, `"performance"`, or `"security"`.
+    pub area: String,
+    /// What was observed in the operational data.
+    pub observation: String,
+    /// Recommended action to address the finding.
+    pub recommendation: String,
+}
+
+/// An AI-generated operational insights report for an account.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InsightReport {
+    pub id: String,
+    pub account_id: Option<String>,
+    pub generated_at: String,
+    pub period_start: String,
+    pub period_end: String,
+    /// Claude model used to generate this report.
+    pub model: String,
+    pub input_tokens: Option<i64>,
+    pub output_tokens: Option<i64>,
+    /// One- or two-sentence headline summary.
+    pub summary: String,
+    /// Structured findings with severity, area, observation, and recommendation.
+    pub findings: Vec<InsightFinding>,
+    /// Full markdown report body as returned by Claude.
+    pub raw_markdown: Option<String>,
+    pub acknowledged_at: Option<String>,
 }
 
 // ---- Pagination ----

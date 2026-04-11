@@ -1,8 +1,8 @@
 use crate::client::EuroMail;
 use crate::errors::EuroMailError;
 use crate::types::{
-    BroadcastParams, BroadcastResponse, Email, EmailDetail, ListParams, PaginatedResponse,
-    SendBatchParams, SendBatchResponse, SendEmailParams, SendEmailResponse,
+    BroadcastParams, BroadcastResponse, Email, EmailDetail, LinkClickStat, ListParams,
+    PaginatedResponse, SendBatchParams, SendBatchResponse, SendEmailParams, SendEmailResponse,
 };
 
 impl EuroMail {
@@ -51,6 +51,16 @@ impl EuroMail {
         params: &BroadcastParams,
     ) -> Result<BroadcastResponse, EuroMailError> {
         self.post("/v1/emails/broadcast", params).await
+    }
+
+    /// Retrieve per-link click statistics for a sent email.
+    ///
+    /// Returns click counts for every tracked URL in the email body.
+    pub async fn get_email_links(
+        &self,
+        email_id: &str,
+    ) -> Result<Vec<LinkClickStat>, EuroMailError> {
+        self.get(&format!("/v1/emails/{email_id}/links")).await
     }
 
     /// List emails with optional pagination and status filter.

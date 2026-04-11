@@ -43,6 +43,7 @@
 //! - **GDPR** — export and erase personal data
 //! - **Audit logs** — review account activity
 //! - **Dead letters** — inspect and retry failed deliveries
+//! - **Insights** — trigger AI-generated operational reports
 
 pub mod client;
 pub mod errors;
@@ -59,6 +60,7 @@ mod domains;
 mod emails;
 mod gdpr;
 mod inbound;
+mod insights;
 mod inbound_routes;
 mod newsletters;
 mod operations;
