@@ -45,6 +45,26 @@ impl EuroMail {
         Self::with_base_url(api_key, base_url)
     }
 
+    /// Create a new client from the `EUROMAIL_API_KEY` environment variable.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `EUROMAIL_API_KEY` environment variable is not set.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use euromail::EuroMail;
+    ///
+    /// // Requires EUROMAIL_API_KEY to be set in the environment.
+    /// let client = EuroMail::from_env();
+    /// ```
+    pub fn from_env() -> Self {
+        let api_key = std::env::var("EUROMAIL_API_KEY")
+            .expect("EUROMAIL_API_KEY environment variable must be set");
+        Self::new(api_key)
+    }
+
     /// Create a new client with an explicit base URL.
     ///
     /// Useful for testing against a local or staging server.
