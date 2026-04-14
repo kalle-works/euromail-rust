@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-13
+
+### Added
+
+- Native agent mailbox support: `create_mailbox`, `list_mailboxes`, `get_mailbox`,
+  `delete_mailbox`, `list_mailbox_messages`, `delete_mailbox_message`
+- `wait_for_next_message` long-poll method that returns `Ok(None)` on HTTP 408
+  when no message arrives within the timeout window
+- `ack_message` / `nack_message` for the at-least-once lease/ack/nack delivery model
+- New types: `AgentMailbox`, `MailboxMessage`, `LeasedMessage`, `CreateMailboxParams`,
+  `ListMessagesParams`
+
+### Changed
+
+- README "Agent Mailboxes" section now demonstrates native SDK usage instead of
+  raw `reqwest` calls
+
 ## [0.2.0] - 2026-04-13
 
 ### Added

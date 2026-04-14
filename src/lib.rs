@@ -39,6 +39,7 @@
 //! - **Suppressions** — maintain bounce/complaint suppression lists
 //! - **Analytics** — query delivery metrics, timeseries, and per-domain breakdowns
 //! - **Inbound** — receive and route incoming emails
+//! - **Agent mailboxes** — persistent mailboxes for AI agents with lease/ack/nack delivery
 //! - **API keys** — create scoped keys with fine-grained permissions
 //! - **GDPR** — export and erase personal data
 //! - **Audit logs** — review account activity
@@ -47,6 +48,7 @@
 
 pub mod client;
 pub mod errors;
+pub mod mailboxes;
 pub mod types;
 
 mod account;
@@ -60,8 +62,8 @@ mod domains;
 mod emails;
 mod gdpr;
 mod inbound;
-mod insights;
 mod inbound_routes;
+mod insights;
 mod newsletters;
 mod operations;
 mod signup_forms;
@@ -73,4 +75,7 @@ mod webhooks;
 
 pub use client::EuroMail;
 pub use errors::EuroMailError;
+pub use mailboxes::{
+    AgentMailbox, CreateMailboxParams, LeasedMessage, ListMessagesParams, MailboxMessage,
+};
 pub use types::*;
