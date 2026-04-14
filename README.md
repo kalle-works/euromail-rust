@@ -387,6 +387,76 @@ match client.send_email(&params).await {
 | `Api` | 4xx/5xx | Other API errors |
 | `Http` | - | Network or transport errors |
 
+## Agent Mailboxes
+
+Agent mailboxes provide persistent email addresses for AI agents with at-least-once message delivery via a lease/ack/nack model. Native SDK support is coming in a future release. In the meantime, use `reqwest` directly (the same HTTP client this SDK uses under the hood):
+
+```rust
+use reqwest::Client;
+use serde_json::json;
+
+# async fn run() -> Result<(), Box<dyn std::error::Error>> {
+let api = "https://api.euromail.dev";
+let key = std::env::var("EUROMAIL_API_KEY")?;
+let http = Client::new();
+
+// Create a mailbox
+let mailbox: serde_json::Value = http
+    .post(format!("{api}/v1/agent-mailboxes"))
+    .header("X-EuroMail-Api-Key", &key)
+    .json(&json!({ "display_name": "Support Agent" }))
+    .send()
+    .await?
+    .json()
+    .await?;
+let mailbox_id = mailbox["data"]["id"].as_str().unwrap();
+
+loop {
+    // Long-poll for the next message (acquires a 5-minute lease)
+    let res = http
+        .get(format!("{api}/v1/agent-mailboxes/{mailbox_id}/messages/next"))
+        .query(&[("timeout", "30")])
+        .header("X-EuroMail-Api-Key", &key)
+        .send()
+        .await?;
+
+    if res.status().as_u16() == 408 {
+        continue; // no message available within the poll window
+    }
+
+    let body: serde_json::Value = res.json().await?;
+    let msg_id = body["data"]["id"].as_str().unwrap();
+    let token = body["lease_token"].as_str().unwrap();
+
+    match handle(&body["data"]).await {
+        Ok(_) => {
+            // Ack when done — message will not be redelivered
+            http.post(format!(
+                "{api}/v1/agent-mailboxes/{mailbox_id}/messages/{msg_id}/ack"
+            ))
+            .header("X-EuroMail-Api-Key", &key)
+            .json(&json!({ "lease_token": token }))
+            .send()
+            .await?;
+        }
+        Err(e) => {
+            // Nack to return the message to the queue for retry
+            http.post(format!(
+                "{api}/v1/agent-mailboxes/{mailbox_id}/messages/{msg_id}/nack"
+            ))
+            .header("X-EuroMail-Api-Key", &key)
+            .json(&json!({ "lease_token": token }))
+            .send()
+            .await?;
+            return Err(e);
+        }
+    }
+}
+# }
+```
+
+See the [Agent Mailboxes guide](https://euromail.dev/docs/guides/agent-mailboxes/) for the full flow, duplicate handling, and horizontal scaling patterns.
+
 ## License
 
 MIT
