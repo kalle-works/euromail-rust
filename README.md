@@ -9,7 +9,7 @@ Official Rust SDK for the [EuroMail](https://euromail.dev) transactional email s
 
 ```toml
 [dependencies]
-euromail = "0.1"
+euromail = "0.3"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -389,71 +389,43 @@ match client.send_email(&params).await {
 
 ## Agent Mailboxes
 
-Agent mailboxes provide persistent email addresses for AI agents with at-least-once message delivery via a lease/ack/nack model. Native SDK support is coming in a future release. In the meantime, use `reqwest` directly (the same HTTP client this SDK uses under the hood):
+Agent mailboxes provide persistent email addresses for AI agents with at-least-once message delivery via a lease/ack/nack model. The SDK wraps the full flow natively:
 
 ```rust
-use reqwest::Client;
-use serde_json::json;
+use euromail::{CreateMailboxParams, EuroMail};
 
-# async fn run() -> Result<(), Box<dyn std::error::Error>> {
-let api = "https://api.euromail.dev";
-let key = std::env::var("EUROMAIL_API_KEY")?;
-let http = Client::new();
+# async fn run() -> Result<(), euromail::EuroMailError> {
+let client = EuroMail::from_env();
 
-// Create a mailbox
-let mailbox: serde_json::Value = http
-    .post(format!("{api}/v1/agent-mailboxes"))
-    .header("X-EuroMail-Api-Key", &key)
-    .json(&json!({ "display_name": "Support Agent" }))
-    .send()
-    .await?
-    .json()
-    .await?;
-let mailbox_id = mailbox["data"]["id"].as_str().unwrap();
+// Create a mailbox (omit local_part/domain_id for a server-generated address)
+let mailbox = client.create_mailbox(&CreateMailboxParams {
+    display_name: Some("Support Agent".into()),
+    ..Default::default()
+}).await?;
 
 loop {
-    // Long-poll for the next message (acquires a 5-minute lease)
-    let res = http
-        .get(format!("{api}/v1/agent-mailboxes/{mailbox_id}/messages/next"))
-        .query(&[("timeout", "30")])
-        .header("X-EuroMail-Api-Key", &key)
-        .send()
-        .await?;
+    // Long-poll for the next message. Returns Ok(None) on HTTP 408
+    // (no message available within the timeout window).
+    let Some(leased) = client.wait_for_next_message(&mailbox.id, Some(30)).await? else {
+        continue;
+    };
 
-    if res.status().as_u16() == 408 {
-        continue; // no message available within the poll window
-    }
-
-    let body: serde_json::Value = res.json().await?;
-    let msg_id = body["data"]["id"].as_str().unwrap();
-    let token = body["lease_token"].as_str().unwrap();
-
-    match handle(&body["data"]).await {
+    match handle(&leased.data).await {
         Ok(_) => {
             // Ack when done — message will not be redelivered
-            http.post(format!(
-                "{api}/v1/agent-mailboxes/{mailbox_id}/messages/{msg_id}/ack"
-            ))
-            .header("X-EuroMail-Api-Key", &key)
-            .json(&json!({ "lease_token": token }))
-            .send()
-            .await?;
+            client.ack_message(&mailbox.id, &leased.data.id, &leased.lease_token).await?;
         }
-        Err(e) => {
-            // Nack to return the message to the queue for retry
-            http.post(format!(
-                "{api}/v1/agent-mailboxes/{mailbox_id}/messages/{msg_id}/nack"
-            ))
-            .header("X-EuroMail-Api-Key", &key)
-            .json(&json!({ "lease_token": token }))
-            .send()
-            .await?;
-            return Err(e);
+        Err(_) => {
+            // Nack returns the message to the queue for retry
+            client.nack_message(&mailbox.id, &leased.data.id, &leased.lease_token).await?;
         }
     }
 }
 # }
+# async fn handle(_msg: &euromail::MailboxMessage) -> Result<(), euromail::EuroMailError> { Ok(()) }
 ```
+
+Other methods: `list_mailboxes`, `get_mailbox`, `delete_mailbox`, `list_mailbox_messages`, `delete_mailbox_message`.
 
 See the [Agent Mailboxes guide](https://euromail.dev/docs/guides/agent-mailboxes/) for the full flow, duplicate handling, and horizontal scaling patterns.
 
