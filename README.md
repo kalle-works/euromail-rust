@@ -79,6 +79,39 @@ let response = client.send_email(&SendEmailParams {
 }).await?;
 ```
 
+### Schedule a send
+
+```rust
+let response = client.send_email(&SendEmailParams {
+    from: "noreply@yourdomain.com".into(),
+    to: "user@example.com".into(),
+    subject: Some("Reminder".into()),
+    text_body: Some("Your trial ends tomorrow.".into()),
+    send_at: Some("2026-05-01T09:00:00Z".into()),
+    ..Default::default()
+}).await?;
+
+assert_eq!(response.status, "scheduled");
+// response.scheduled_at echoes back the release time.
+```
+
+### Transactional overrides
+
+For password resets and receipts, disable tracking and strip the
+`List-Unsubscribe` headers the API otherwise adds:
+
+```rust
+client.send_email(&SendEmailParams {
+    from: "security@yourdomain.com".into(),
+    to: "user@example.com".into(),
+    subject: Some("Reset your password".into()),
+    text_body: Some("Click the link to reset.".into()),
+    tracking: Some(false),
+    suppress_list_management_header: Some(true),
+    ..Default::default()
+}).await?;
+```
+
 ### Send with attachments
 
 ```rust
@@ -250,6 +283,28 @@ let contacts = client.list_contacts(&list.id, None).await?;
 client.remove_contact(&list.id, "user@example.com").await?;
 client.delete_contact_list(&list.id).await?;
 ```
+
+### Welcome Email
+
+Configure an automatic welcome email that fires when a contact becomes active.
+
+```rust
+use euromail::ConfigureWelcomeEmailParams;
+
+client.configure_welcome_email(&list.id, &ConfigureWelcomeEmailParams {
+    enabled: true,
+    subject: Some("Welcome to the list!".into()),
+    html_body: Some("<h1>Thanks for subscribing.</h1>".into()),
+    delay_seconds: 0,
+    ..Default::default()
+}).await?;
+
+let config = client.get_welcome_email(&list.id).await?;
+assert!(config.enabled);
+```
+
+`template_id` and inline bodies are mutually exclusive. `delay_seconds` accepts
+`0..=604800` (up to 7 days).
 
 ## Inbound Email
 

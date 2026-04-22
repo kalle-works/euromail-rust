@@ -1,5 +1,8 @@
-use euromail::{AddContactParams, BulkAddContactsParams, CreateContactListParams, EuroMail};
-use wiremock::matchers::{header, method, path};
+use euromail::{
+    AddContactParams, BulkAddContactsParams, ConfigureWelcomeEmailParams, CreateContactListParams,
+    EuroMail,
+};
+use wiremock::matchers::{body_partial_json, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -145,4 +148,116 @@ async fn test_delete_contact_list() {
         .await;
 
     client.delete_contact_list("cl-100").await.unwrap();
+}
+
+#[tokio::test]
+async fn test_get_welcome_email_unconfigured() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("GET"))
+        .and(path("/v1/contact-lists/cl-100/welcome-email"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {
+                "enabled": false,
+                "subject": null,
+                "html_body": null,
+                "text_body": null,
+                "template_id": null,
+                "from_address": null,
+                "delay_seconds": 0
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let config = client.get_welcome_email("cl-100").await.unwrap();
+    assert!(!config.enabled);
+    assert_eq!(config.subject, None);
+    assert_eq!(config.delay_seconds, 0);
+}
+
+#[tokio::test]
+async fn test_configure_welcome_email_with_inline_body() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("PUT"))
+        .and(path("/v1/contact-lists/cl-100/welcome-email"))
+        .and(body_partial_json(serde_json::json!({
+            "enabled": true,
+            "subject": "Welcome!",
+            "html_body": "<h1>Hi</h1>",
+            "delay_seconds": 120
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {
+                "id": "cl-100",
+                "account_id": "acc-123",
+                "name": "Newsletter",
+                "description": null,
+                "double_opt_in": false,
+                "contact_count": 0,
+                "created_at": "2026-03-07T12:00:00Z",
+                "updated_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let list = client
+        .configure_welcome_email(
+            "cl-100",
+            &ConfigureWelcomeEmailParams {
+                enabled: true,
+                subject: Some("Welcome!".to_string()),
+                html_body: Some("<h1>Hi</h1>".to_string()),
+                delay_seconds: 120,
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(list.id, "cl-100");
+    assert_eq!(list.updated_at, "2026-04-23T10:00:00Z");
+}
+
+#[tokio::test]
+async fn test_configure_welcome_email_with_template() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("PUT"))
+        .and(path("/v1/contact-lists/cl-100/welcome-email"))
+        .and(body_partial_json(serde_json::json!({
+            "enabled": true,
+            "template_id": "tpl-welcome"
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {
+                "id": "cl-100",
+                "account_id": "acc-123",
+                "name": "Newsletter",
+                "description": null,
+                "double_opt_in": false,
+                "contact_count": 0,
+                "created_at": "2026-03-07T12:00:00Z",
+                "updated_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    client
+        .configure_welcome_email(
+            "cl-100",
+            &ConfigureWelcomeEmailParams {
+                enabled: true,
+                template_id: Some("tpl-welcome".to_string()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
 }

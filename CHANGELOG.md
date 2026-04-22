@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-23
+
+### Added
+
+- `SendEmailParams` now carries `send_at` (RFC 3339 delayed delivery), `tracking`
+  (per-email open/click tracking override), and `suppress_list_management_header`
+  (strip `List-Unsubscribe` headers on transactional mail)
+- `SendEmailResponse` now exposes `sandbox` and `scheduled_at` returned by the API
+- Contact list welcome-email configuration: `get_welcome_email` and
+  `configure_welcome_email`, backed by new `WelcomeEmailConfig` and
+  `ConfigureWelcomeEmailParams` types
+
 ## [0.3.0] - 2026-04-13
 
 ### Added
