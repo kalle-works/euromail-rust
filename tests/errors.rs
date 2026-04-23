@@ -68,18 +68,7 @@ async fn test_validation_error() {
         from: "sender@example.com".to_string(),
         to: euromail::Recipient::One(String::new()),
         subject: Some("Test".to_string()),
-        html_body: None,
-        text_body: None,
-        cc: None,
-        bcc: None,
-        reply_to: None,
-        template_alias: None,
-        template_data: None,
-        headers: None,
-        tags: None,
-        metadata: None,
-        attachments: None,
-        idempotency_key: None,
+        ..Default::default()
     };
 
     let result = client.send_email(&params).await;

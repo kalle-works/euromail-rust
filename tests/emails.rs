@@ -1,5 +1,5 @@
 use euromail::{EuroMail, Recipient, SendBatchParams, SendEmailParams};
-use wiremock::matchers::{header, method, path};
+use wiremock::matchers::{body_partial_json, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -27,17 +27,7 @@ async fn test_send_email() {
         to: Recipient::One("recipient@example.com".to_string()),
         subject: Some("Hello".to_string()),
         html_body: Some("<h1>Hi</h1>".to_string()),
-        text_body: None,
-        cc: None,
-        bcc: None,
-        reply_to: None,
-        template_alias: None,
-        template_data: None,
-        headers: None,
-        tags: None,
-        metadata: None,
-        attachments: None,
-        idempotency_key: None,
+        ..Default::default()
     };
 
     let response = client.send_email(&params).await.unwrap();
@@ -82,34 +72,14 @@ async fn test_send_batch() {
                 to: Recipient::One("a@example.com".to_string()),
                 subject: Some("Hello A".to_string()),
                 html_body: Some("<p>Hi A</p>".to_string()),
-                text_body: None,
-                cc: None,
-                bcc: None,
-                reply_to: None,
-                template_alias: None,
-                template_data: None,
-                headers: None,
-                tags: None,
-                metadata: None,
-                attachments: None,
-                idempotency_key: None,
+                ..Default::default()
             },
             SendEmailParams {
                 from: "sender@example.com".to_string(),
                 to: Recipient::One("b@example.com".to_string()),
                 subject: Some("Hello B".to_string()),
                 html_body: Some("<p>Hi B</p>".to_string()),
-                text_body: None,
-                cc: None,
-                bcc: None,
-                reply_to: None,
-                template_alias: None,
-                template_data: None,
-                headers: None,
-                tags: None,
-                metadata: None,
-                attachments: None,
-                idempotency_key: None,
+                ..Default::default()
             },
         ],
     };
@@ -282,4 +252,118 @@ async fn test_send_email_with_default() {
 
     let response = client.send_email(&params).await.unwrap();
     assert_eq!(response.id, "email-default");
+}
+
+#[tokio::test]
+async fn test_send_email_scheduled_with_tracking_override() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("POST"))
+        .and(path("/v1/emails"))
+        .and(body_partial_json(serde_json::json!({
+            "send_at": "2026-05-01T09:00:00Z",
+            "tracking": false,
+            "suppress_list_management_header": true
+        })))
+        .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({
+            "data": {
+                "id": "email-scheduled",
+                "message_id": "<sched@euromail.dev>",
+                "status": "scheduled",
+                "to": "recipient@example.com",
+                "sandbox": false,
+                "scheduled_at": "2026-05-01T09:00:00Z",
+                "created_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let params = SendEmailParams {
+        from: "sender@example.com".to_string(),
+        to: Recipient::One("recipient@example.com".to_string()),
+        subject: Some("Reminder".to_string()),
+        text_body: Some("Hi".to_string()),
+        send_at: Some("2026-05-01T09:00:00Z".to_string()),
+        tracking: Some(false),
+        suppress_list_management_header: Some(true),
+        ..Default::default()
+    };
+
+    let response = client.send_email(&params).await.unwrap();
+    assert_eq!(response.status, "scheduled");
+    assert!(!response.sandbox);
+    assert_eq!(
+        response.scheduled_at.as_deref(),
+        Some("2026-05-01T09:00:00Z")
+    );
+}
+
+#[tokio::test]
+async fn test_send_email_tracking_force_on() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("POST"))
+        .and(path("/v1/emails"))
+        .and(body_partial_json(serde_json::json!({ "tracking": true })))
+        .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({
+            "data": {
+                "id": "email-tracked",
+                "message_id": "<t@euromail.dev>",
+                "status": "queued",
+                "to": "recipient@example.com",
+                "sandbox": false,
+                "created_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let params = SendEmailParams {
+        from: "sender@example.com".to_string(),
+        to: Recipient::One("recipient@example.com".to_string()),
+        subject: Some("Promo".to_string()),
+        text_body: Some("Body".to_string()),
+        tracking: Some(true),
+        ..Default::default()
+    };
+
+    let response = client.send_email(&params).await.unwrap();
+    assert_eq!(response.status, "queued");
+}
+
+#[tokio::test]
+async fn test_send_email_sandbox_response() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("POST"))
+        .and(path("/v1/emails"))
+        .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({
+            "data": {
+                "id": "email-sandbox",
+                "message_id": "<sb@euromail.dev>",
+                "status": "queued",
+                "to": "recipient@example.com",
+                "sandbox": true,
+                "scheduled_at": null,
+                "created_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let params = SendEmailParams {
+        from: "sender@unverified.example".to_string(),
+        to: Recipient::One("recipient@example.com".to_string()),
+        subject: Some("Hi".to_string()),
+        text_body: Some("Body".to_string()),
+        ..Default::default()
+    };
+
+    let response = client.send_email(&params).await.unwrap();
+    assert!(response.sandbox);
+    assert!(response.scheduled_at.is_none());
 }

@@ -1,8 +1,9 @@
 use crate::client::EuroMail;
 use crate::errors::EuroMailError;
 use crate::types::{
-    AddContactParams, BulkAddContactsParams, BulkAddContactsResponse, Contact, ContactList,
-    CreateContactListParams, ListContactsParams, PaginatedResponse, UpdateContactListParams,
+    AddContactParams, BulkAddContactsParams, BulkAddContactsResponse, ConfigureWelcomeEmailParams,
+    Contact, ContactList, CreateContactListParams, ListContactsParams, PaginatedResponse,
+    UpdateContactListParams, WelcomeEmailConfig,
 };
 
 impl EuroMail {
@@ -98,6 +99,37 @@ impl EuroMail {
         self.delete(&format!(
             "/v1/contact-lists/{list_id}/contacts/{contact_id}"
         ))
+        .await
+    }
+
+    /// Fetch the welcome-email configuration for a contact list.
+    ///
+    /// When no welcome email has been configured, returns a [`WelcomeEmailConfig`]
+    /// with `enabled: false` and all body fields set to `None`.
+    pub async fn get_welcome_email(
+        &self,
+        list_id: &str,
+    ) -> Result<WelcomeEmailConfig, EuroMailError> {
+        self.get(&format!("/v1/contact-lists/{list_id}/welcome-email"))
+            .await
+    }
+
+    /// Configure the welcome email for a contact list.
+    ///
+    /// When `enabled` is `true`, either `template_id` or one of `html_body` /
+    /// `text_body` must be supplied. `template_id` and inline bodies are
+    /// mutually exclusive.
+    ///
+    /// Returns the updated contact list.
+    pub async fn configure_welcome_email(
+        &self,
+        list_id: &str,
+        params: &ConfigureWelcomeEmailParams,
+    ) -> Result<ContactList, EuroMailError> {
+        self.put(
+            &format!("/v1/contact-lists/{list_id}/welcome-email"),
+            params,
+        )
         .await
     }
 }

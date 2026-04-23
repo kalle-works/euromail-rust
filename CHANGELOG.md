@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-23
+
+### Added
+
+- `SendEmailParams` now carries `send_at` (RFC 3339 delayed delivery), `tracking`
+  (per-email open/click tracking override), and `suppress_list_management_header`
+  (strip `List-Unsubscribe` headers on transactional mail)
+- `SendEmailResponse` now exposes `sandbox` and `scheduled_at` returned by the API,
+  and is marked `#[non_exhaustive]` so future fields are additive
+- Contact list welcome-email configuration: `get_welcome_email` and
+  `configure_welcome_email`, backed by new `WelcomeEmailConfig` (marked
+  `#[non_exhaustive]`) and `ConfigureWelcomeEmailParams` types
+- `ContactList` gains `welcome_email_enabled`, `welcome_email_subject`,
+  `welcome_email_html_body`, `welcome_email_text_body`, `welcome_email_template_id`,
+  `welcome_email_from_address`, `welcome_email_delay_seconds` so the value returned
+  by `configure_welcome_email` surfaces the saved config (all default when the
+  plain list/get endpoints omit them)
+- `MAX_WELCOME_DELAY_SECONDS` constant (7 days) for client-side bounds checking
+
 ## [0.3.0] - 2026-04-13
 
 ### Added

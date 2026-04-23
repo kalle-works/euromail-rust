@@ -138,6 +138,20 @@ pub struct SendEmailParams {
     /// Prevents duplicate sends when retrying — the API de-duplicates on this key.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub idempotency_key: Option<String>,
+    /// RFC 3339 timestamp for delayed sending (e.g. `"2026-05-01T09:00:00Z"`).
+    /// The email is queued immediately but held until this time.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub send_at: Option<String>,
+    /// Per-email tracking override. `Some(false)` disables open/click tracking
+    /// even if the account has tracking enabled; `Some(true)` forces tracking
+    /// on even if the account default is off. Leave `None` to use the account default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tracking: Option<bool>,
+    /// Omit `List-Unsubscribe` and `List-Unsubscribe-Post` headers. Use for
+    /// transactional emails (password resets, receipts) where an unsubscribe
+    /// link is inappropriate. Defaults to `false` server-side.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suppress_list_management_header: Option<bool>,
 }
 
 /// A file attachment for an email.
@@ -152,12 +166,22 @@ pub struct Attachment {
 
 /// Response after successfully queuing an email for delivery.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct SendEmailResponse {
     pub id: String,
     /// RFC 5322 Message-ID assigned by EuroMail.
     pub message_id: String,
     pub status: String,
     pub to: String,
+    /// `true` when the email was sent through the sandbox transport because the
+    /// sending domain is not yet verified. Sandbox sends do not reach the real
+    /// recipient and are flagged with a `sandbox` tag in analytics.
+    #[serde(default)]
+    pub sandbox: bool,
+    /// When `send_at` was supplied on the request, the RFC 3339 timestamp at
+    /// which the email will be released for delivery.
+    #[serde(default)]
+    pub scheduled_at: Option<String>,
     pub created_at: String,
 }
 
@@ -435,6 +459,23 @@ pub struct ContactList {
     pub double_opt_in: bool,
     #[serde(default)]
     pub contact_count: i64,
+    /// `true` when the list has a welcome email configured and enabled.
+    /// Populated by responses from welcome-email endpoints; the plain list/get
+    /// endpoints omit this field and it defaults to `false`.
+    #[serde(default)]
+    pub welcome_email_enabled: bool,
+    #[serde(default)]
+    pub welcome_email_subject: Option<String>,
+    #[serde(default)]
+    pub welcome_email_html_body: Option<String>,
+    #[serde(default)]
+    pub welcome_email_text_body: Option<String>,
+    #[serde(default)]
+    pub welcome_email_template_id: Option<String>,
+    #[serde(default)]
+    pub welcome_email_from_address: Option<String>,
+    #[serde(default)]
+    pub welcome_email_delay_seconds: i32,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -499,6 +540,67 @@ pub struct ListContactsParams {
     pub per_page: Option<i64>,
     /// Filter by contact status (e.g. `"active"`, `"unsubscribed"`).
     pub status: Option<String>,
+}
+
+/// Maximum delay (in seconds) the API accepts for a welcome email — 7 days.
+pub const MAX_WELCOME_DELAY_SECONDS: i32 = 604_800;
+
+/// Welcome email configuration for a contact list.
+///
+/// Returned by [`crate::EuroMail::get_welcome_email`]. The same shape (minus
+/// defaults) is submitted via [`ConfigureWelcomeEmailParams`] to update it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[non_exhaustive]
+pub struct WelcomeEmailConfig {
+    /// When `true`, new active contacts receive a welcome email.
+    pub enabled: bool,
+    /// Subject line. Required when `enabled` and no `template_id` is set.
+    pub subject: Option<String>,
+    /// Inline HTML body. Mutually exclusive with `template_id`.
+    pub html_body: Option<String>,
+    /// Inline plain-text body. Mutually exclusive with `template_id`.
+    pub text_body: Option<String>,
+    /// When set, the template's subject/body are used and `html_body`/`text_body`
+    /// are ignored. Mutually exclusive with inline bodies.
+    pub template_id: Option<String>,
+    /// Override the sender address. Must belong to a verified domain on this
+    /// account. When `None`, the account's default from address is used.
+    pub from_address: Option<String>,
+    /// Delay before the welcome email is sent, in seconds. `0` is immediate.
+    /// Maximum is [`MAX_WELCOME_DELAY_SECONDS`] (7 days).
+    #[serde(default)]
+    pub delay_seconds: i32,
+}
+
+/// Parameters for `PUT /v1/contact-lists/{id}/welcome-email`.
+///
+/// When `enabled` is `true`, either `template_id` or one of `html_body` /
+/// `text_body` must be supplied — `template_id` and inline bodies are mutually
+/// exclusive.
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct ConfigureWelcomeEmailParams {
+    /// When `true`, new active contacts receive a welcome email.
+    pub enabled: bool,
+    /// Subject line. Required when `enabled` and no `template_id` is set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    /// Inline HTML body. Mutually exclusive with `template_id`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub html_body: Option<String>,
+    /// Inline plain-text body. Mutually exclusive with `template_id`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_body: Option<String>,
+    /// When set, the template's subject/body are used and `html_body`/`text_body`
+    /// are ignored. Mutually exclusive with inline bodies.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub template_id: Option<String>,
+    /// Override the sender address. Must belong to a verified domain on this
+    /// account. When `None`, the account's default from address is used.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_address: Option<String>,
+    /// Delay before the welcome email is sent, in seconds. `0` is immediate.
+    /// Maximum is [`MAX_WELCOME_DELAY_SECONDS`] (7 days).
+    pub delay_seconds: i32,
 }
 
 // ---- Analytics Types ----
