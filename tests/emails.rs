@@ -301,6 +301,40 @@ async fn test_send_email_scheduled_with_tracking_override() {
 }
 
 #[tokio::test]
+async fn test_send_email_tracking_force_on() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("POST"))
+        .and(path("/v1/emails"))
+        .and(body_partial_json(serde_json::json!({ "tracking": true })))
+        .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({
+            "data": {
+                "id": "email-tracked",
+                "message_id": "<t@euromail.dev>",
+                "status": "queued",
+                "to": "recipient@example.com",
+                "sandbox": false,
+                "created_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let params = SendEmailParams {
+        from: "sender@example.com".to_string(),
+        to: Recipient::One("recipient@example.com".to_string()),
+        subject: Some("Promo".to_string()),
+        text_body: Some("Body".to_string()),
+        tracking: Some(true),
+        ..Default::default()
+    };
+
+    let response = client.send_email(&params).await.unwrap();
+    assert_eq!(response.status, "queued");
+}
+
+#[tokio::test]
 async fn test_send_email_sandbox_response() {
     let mock_server = MockServer::start().await;
     let client = EuroMail::with_base_url("test-key", &mock_server.uri());

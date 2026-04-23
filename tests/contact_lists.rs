@@ -1,6 +1,6 @@
 use euromail::{
     AddContactParams, BulkAddContactsParams, ConfigureWelcomeEmailParams, CreateContactListParams,
-    EuroMail,
+    EuroMail, EuroMailError,
 };
 use wiremock::matchers::{body_partial_json, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -260,4 +260,82 @@ async fn test_configure_welcome_email_with_template() {
         )
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn test_configure_welcome_email_disable() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("PUT"))
+        .and(path("/v1/contact-lists/cl-100/welcome-email"))
+        .and(body_partial_json(serde_json::json!({ "enabled": false })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {
+                "id": "cl-100",
+                "account_id": "acc-123",
+                "name": "Newsletter",
+                "description": null,
+                "double_opt_in": false,
+                "contact_count": 0,
+                "welcome_email_enabled": false,
+                "welcome_email_subject": null,
+                "welcome_email_html_body": null,
+                "welcome_email_text_body": null,
+                "welcome_email_template_id": null,
+                "welcome_email_from_address": null,
+                "welcome_email_delay_seconds": 0,
+                "created_at": "2026-03-07T12:00:00Z",
+                "updated_at": "2026-04-23T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let list = client
+        .configure_welcome_email(
+            "cl-100",
+            &ConfigureWelcomeEmailParams {
+                enabled: false,
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+    assert!(!list.welcome_email_enabled);
+    assert_eq!(list.welcome_email_subject, None);
+}
+
+#[tokio::test]
+async fn test_configure_welcome_email_validation_error() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("PUT"))
+        .and(path("/v1/contact-lists/cl-100/welcome-email"))
+        .respond_with(ResponseTemplate::new(422).set_body_json(serde_json::json!({
+            "code": "invalid_params",
+            "message": "welcome email requires either template_id or html_body/text_body when enabled"
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let result = client
+        .configure_welcome_email(
+            "cl-100",
+            &ConfigureWelcomeEmailParams {
+                enabled: true,
+                ..Default::default()
+            },
+        )
+        .await;
+
+    match result {
+        Err(EuroMailError::Validation { code, message }) => {
+            assert_eq!(code, "invalid_params");
+            assert!(message.contains("template_id"));
+        }
+        other => panic!("expected Validation error, got {other:?}"),
+    }
 }

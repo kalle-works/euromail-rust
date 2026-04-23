@@ -166,6 +166,7 @@ pub struct Attachment {
 
 /// Response after successfully queuing an email for delivery.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct SendEmailResponse {
     pub id: String,
     /// RFC 5322 Message-ID assigned by EuroMail.
@@ -458,6 +459,23 @@ pub struct ContactList {
     pub double_opt_in: bool,
     #[serde(default)]
     pub contact_count: i64,
+    /// `true` when the list has a welcome email configured and enabled.
+    /// Populated by responses from welcome-email endpoints; the plain list/get
+    /// endpoints omit this field and it defaults to `false`.
+    #[serde(default)]
+    pub welcome_email_enabled: bool,
+    #[serde(default)]
+    pub welcome_email_subject: Option<String>,
+    #[serde(default)]
+    pub welcome_email_html_body: Option<String>,
+    #[serde(default)]
+    pub welcome_email_text_body: Option<String>,
+    #[serde(default)]
+    pub welcome_email_template_id: Option<String>,
+    #[serde(default)]
+    pub welcome_email_from_address: Option<String>,
+    #[serde(default)]
+    pub welcome_email_delay_seconds: i32,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -524,17 +542,23 @@ pub struct ListContactsParams {
     pub status: Option<String>,
 }
 
+/// Maximum delay (in seconds) the API accepts for a welcome email — 7 days.
+pub const MAX_WELCOME_DELAY_SECONDS: i32 = 604_800;
+
 /// Welcome email configuration for a contact list.
 ///
 /// Returned by [`crate::EuroMail::get_welcome_email`]. The same shape (minus
 /// defaults) is submitted via [`ConfigureWelcomeEmailParams`] to update it.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[non_exhaustive]
 pub struct WelcomeEmailConfig {
     /// When `true`, new active contacts receive a welcome email.
     pub enabled: bool,
     /// Subject line. Required when `enabled` and no `template_id` is set.
     pub subject: Option<String>,
+    /// Inline HTML body. Mutually exclusive with `template_id`.
     pub html_body: Option<String>,
+    /// Inline plain-text body. Mutually exclusive with `template_id`.
     pub text_body: Option<String>,
     /// When set, the template's subject/body are used and `html_body`/`text_body`
     /// are ignored. Mutually exclusive with inline bodies.
@@ -543,26 +567,39 @@ pub struct WelcomeEmailConfig {
     /// account. When `None`, the account's default from address is used.
     pub from_address: Option<String>,
     /// Delay before the welcome email is sent, in seconds. `0` is immediate.
-    /// Maximum is 604800 (7 days).
+    /// Maximum is [`MAX_WELCOME_DELAY_SECONDS`] (7 days).
     #[serde(default)]
     pub delay_seconds: i32,
 }
 
 /// Parameters for `PUT /v1/contact-lists/{id}/welcome-email`.
+///
+/// When `enabled` is `true`, either `template_id` or one of `html_body` /
+/// `text_body` must be supplied — `template_id` and inline bodies are mutually
+/// exclusive.
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct ConfigureWelcomeEmailParams {
+    /// When `true`, new active contacts receive a welcome email.
     pub enabled: bool,
+    /// Subject line. Required when `enabled` and no `template_id` is set.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subject: Option<String>,
+    /// Inline HTML body. Mutually exclusive with `template_id`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub html_body: Option<String>,
+    /// Inline plain-text body. Mutually exclusive with `template_id`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text_body: Option<String>,
+    /// When set, the template's subject/body are used and `html_body`/`text_body`
+    /// are ignored. Mutually exclusive with inline bodies.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template_id: Option<String>,
+    /// Override the sender address. Must belong to a verified domain on this
+    /// account. When `None`, the account's default from address is used.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_address: Option<String>,
-    #[serde(default)]
+    /// Delay before the welcome email is sent, in seconds. `0` is immediate.
+    /// Maximum is [`MAX_WELCOME_DELAY_SECONDS`] (7 days).
     pub delay_seconds: i32,
 }
 
