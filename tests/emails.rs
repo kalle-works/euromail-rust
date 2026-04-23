@@ -1,4 +1,4 @@
-use euromail::{EuroMail, Recipient, SendBatchParams, SendEmailParams};
+use euromail::{EuroMail, SendBatchParams, SendEmailParams};
 use wiremock::matchers::{body_partial_json, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -22,13 +22,9 @@ async fn test_send_email() {
         .mount(&mock_server)
         .await;
 
-    let params = SendEmailParams {
-        from: "sender@example.com".to_string(),
-        to: Recipient::One("recipient@example.com".to_string()),
-        subject: Some("Hello".to_string()),
-        html_body: Some("<h1>Hi</h1>".to_string()),
-        ..Default::default()
-    };
+    let params = SendEmailParams::new("sender@example.com", "recipient@example.com")
+        .subject("Hello")
+        .html_body("<h1>Hi</h1>");
 
     let response = client.send_email(&params).await.unwrap();
     assert_eq!(response.id, "email-456");
@@ -67,20 +63,12 @@ async fn test_send_batch() {
 
     let params = SendBatchParams {
         emails: vec![
-            SendEmailParams {
-                from: "sender@example.com".to_string(),
-                to: Recipient::One("a@example.com".to_string()),
-                subject: Some("Hello A".to_string()),
-                html_body: Some("<p>Hi A</p>".to_string()),
-                ..Default::default()
-            },
-            SendEmailParams {
-                from: "sender@example.com".to_string(),
-                to: Recipient::One("b@example.com".to_string()),
-                subject: Some("Hello B".to_string()),
-                html_body: Some("<p>Hi B</p>".to_string()),
-                ..Default::default()
-            },
+            SendEmailParams::new("sender@example.com", "a@example.com")
+                .subject("Hello A")
+                .html_body("<p>Hi A</p>"),
+            SendEmailParams::new("sender@example.com", "b@example.com")
+                .subject("Hello B")
+                .html_body("<p>Hi B</p>"),
         ],
     };
 
@@ -242,13 +230,9 @@ async fn test_send_email_with_default() {
         .mount(&mock_server)
         .await;
 
-    let params = SendEmailParams {
-        from: "sender@example.com".to_string(),
-        to: Recipient::One("recipient@example.com".to_string()),
-        subject: Some("Hello".to_string()),
-        html_body: Some("<p>Hi</p>".to_string()),
-        ..Default::default()
-    };
+    let params = SendEmailParams::new("sender@example.com", "recipient@example.com")
+        .subject("Hello")
+        .html_body("<p>Hi</p>");
 
     let response = client.send_email(&params).await.unwrap();
     assert_eq!(response.id, "email-default");
@@ -280,16 +264,12 @@ async fn test_send_email_scheduled_with_tracking_override() {
         .mount(&mock_server)
         .await;
 
-    let params = SendEmailParams {
-        from: "sender@example.com".to_string(),
-        to: Recipient::One("recipient@example.com".to_string()),
-        subject: Some("Reminder".to_string()),
-        text_body: Some("Hi".to_string()),
-        send_at: Some("2026-05-01T09:00:00Z".to_string()),
-        tracking: Some(false),
-        suppress_list_management_header: Some(true),
-        ..Default::default()
-    };
+    let params = SendEmailParams::new("sender@example.com", "recipient@example.com")
+        .subject("Reminder")
+        .text_body("Hi")
+        .send_at("2026-05-01T09:00:00Z")
+        .tracking(false)
+        .suppress_list_management_header(true);
 
     let response = client.send_email(&params).await.unwrap();
     assert_eq!(response.status, "scheduled");
@@ -321,14 +301,10 @@ async fn test_send_email_tracking_force_on() {
         .mount(&mock_server)
         .await;
 
-    let params = SendEmailParams {
-        from: "sender@example.com".to_string(),
-        to: Recipient::One("recipient@example.com".to_string()),
-        subject: Some("Promo".to_string()),
-        text_body: Some("Body".to_string()),
-        tracking: Some(true),
-        ..Default::default()
-    };
+    let params = SendEmailParams::new("sender@example.com", "recipient@example.com")
+        .subject("Promo")
+        .text_body("Body")
+        .tracking(true);
 
     let response = client.send_email(&params).await.unwrap();
     assert_eq!(response.status, "queued");
@@ -355,13 +331,9 @@ async fn test_send_email_sandbox_response() {
         .mount(&mock_server)
         .await;
 
-    let params = SendEmailParams {
-        from: "sender@unverified.example".to_string(),
-        to: Recipient::One("recipient@example.com".to_string()),
-        subject: Some("Hi".to_string()),
-        text_body: Some("Body".to_string()),
-        ..Default::default()
-    };
+    let params = SendEmailParams::new("sender@unverified.example", "recipient@example.com")
+        .subject("Hi")
+        .text_body("Body");
 
     let response = client.send_email(&params).await.unwrap();
     assert!(response.sandbox);

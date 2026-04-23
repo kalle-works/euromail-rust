@@ -64,12 +64,7 @@ async fn test_validation_error() {
         .mount(&mock_server)
         .await;
 
-    let params = euromail::SendEmailParams {
-        from: "sender@example.com".to_string(),
-        to: euromail::Recipient::One(String::new()),
-        subject: Some("Test".to_string()),
-        ..Default::default()
-    };
+    let params = euromail::SendEmailParams::new("sender@example.com", "").subject("Test");
 
     let result = client.send_email(&params).await;
     assert!(result.is_err());

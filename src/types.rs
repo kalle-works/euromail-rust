@@ -42,13 +42,9 @@ pub struct Account {
 /// ```rust
 /// use euromail::SendEmailParams;
 ///
-/// let params = SendEmailParams {
-///     from: "hello@yourdomain.com".into(),
-///     to: "user@example.com".into(),
-///     subject: Some("Welcome".into()),
-///     html_body: Some("<h1>Hello!</h1>".into()),
-///     ..Default::default()
-/// };
+/// let params = SendEmailParams::new("hello@yourdomain.com", "user@example.com")
+///     .subject("Welcome")
+///     .html_body("<h1>Hello!</h1>");
 /// ```
 /// Accepts a single recipient or a list of recipients.
 ///
@@ -100,6 +96,7 @@ impl Serialize for Recipient {
 }
 
 #[derive(Debug, Clone, Serialize, Default)]
+#[non_exhaustive]
 pub struct SendEmailParams {
     /// Sender address (must belong to a verified domain).
     pub from: String,
@@ -152,6 +149,146 @@ pub struct SendEmailParams {
     /// link is inappropriate. Defaults to `false` server-side.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suppress_list_management_header: Option<bool>,
+}
+
+impl SendEmailParams {
+    /// Start a new email with the required sender and recipient.
+    ///
+    /// Optional fields are set with chainable setters:
+    ///
+    /// ```rust,no_run
+    /// use euromail::SendEmailParams;
+    ///
+    /// let params = SendEmailParams::new("sender@example.com", "user@example.com")
+    ///     .subject("Hello")
+    ///     .html_body("<h1>Hi</h1>")
+    ///     .tag("welcome");
+    /// ```
+    pub fn new(from: impl Into<String>, to: impl Into<Recipient>) -> Self {
+        Self {
+            from: from.into(),
+            to: to.into(),
+            ..Self::default()
+        }
+    }
+
+    /// Set the subject line.
+    pub fn subject(mut self, subject: impl Into<String>) -> Self {
+        self.subject = Some(subject.into());
+        self
+    }
+
+    /// Set the CC recipients, replacing any previously set list.
+    pub fn cc(mut self, cc: Vec<String>) -> Self {
+        self.cc = Some(cc);
+        self
+    }
+
+    /// Set the BCC recipients, replacing any previously set list.
+    pub fn bcc(mut self, bcc: Vec<String>) -> Self {
+        self.bcc = Some(bcc);
+        self
+    }
+
+    /// Set the `Reply-To` address.
+    pub fn reply_to(mut self, reply_to: impl Into<String>) -> Self {
+        self.reply_to = Some(reply_to.into());
+        self
+    }
+
+    /// Set the HTML body. Mutually exclusive with `template_alias`.
+    pub fn html_body(mut self, html: impl Into<String>) -> Self {
+        self.html_body = Some(html.into());
+        self
+    }
+
+    /// Set the plain-text body.
+    pub fn text_body(mut self, text: impl Into<String>) -> Self {
+        self.text_body = Some(text.into());
+        self
+    }
+
+    /// Send via a stored template alias instead of an inline body.
+    pub fn template_alias(mut self, alias: impl Into<String>) -> Self {
+        self.template_alias = Some(alias.into());
+        self
+    }
+
+    /// Attach template variables for interpolation.
+    pub fn template_data(mut self, data: serde_json::Value) -> Self {
+        self.template_data = Some(data);
+        self
+    }
+
+    /// Set custom SMTP headers.
+    pub fn headers(mut self, headers: serde_json::Value) -> Self {
+        self.headers = Some(headers);
+        self
+    }
+
+    /// Replace the tag list.
+    pub fn tags(mut self, tags: Vec<String>) -> Self {
+        self.tags = Some(tags);
+        self
+    }
+
+    /// Append a single tag, allocating the list on first call.
+    pub fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.tags.get_or_insert_with(Vec::new).push(tag.into());
+        self
+    }
+
+    /// Replace the metadata map.
+    pub fn metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = Some(metadata);
+        self
+    }
+
+    /// Insert a single metadata key/value, allocating the map on first call.
+    pub fn metadatum(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.metadata
+            .get_or_insert_with(HashMap::new)
+            .insert(key.into(), value.into());
+        self
+    }
+
+    /// Replace the attachment list.
+    pub fn attachments(mut self, attachments: Vec<Attachment>) -> Self {
+        self.attachments = Some(attachments);
+        self
+    }
+
+    /// Append a single attachment, allocating the list on first call.
+    pub fn attach(mut self, attachment: Attachment) -> Self {
+        self.attachments
+            .get_or_insert_with(Vec::new)
+            .push(attachment);
+        self
+    }
+
+    /// Set an idempotency key to de-duplicate retries.
+    pub fn idempotency_key(mut self, key: impl Into<String>) -> Self {
+        self.idempotency_key = Some(key.into());
+        self
+    }
+
+    /// Schedule delivery for a future RFC 3339 timestamp.
+    pub fn send_at(mut self, timestamp: impl Into<String>) -> Self {
+        self.send_at = Some(timestamp.into());
+        self
+    }
+
+    /// Override per-email open/click tracking.
+    pub fn tracking(mut self, enabled: bool) -> Self {
+        self.tracking = Some(enabled);
+        self
+    }
+
+    /// Omit `List-Unsubscribe` headers for transactional mail.
+    pub fn suppress_list_management_header(mut self, suppress: bool) -> Self {
+        self.suppress_list_management_header = Some(suppress);
+        self
+    }
 }
 
 /// A file attachment for an email.
@@ -578,6 +715,7 @@ pub struct WelcomeEmailConfig {
 /// `text_body` must be supplied — `template_id` and inline bodies are mutually
 /// exclusive.
 #[derive(Debug, Clone, Serialize, Default)]
+#[non_exhaustive]
 pub struct ConfigureWelcomeEmailParams {
     /// When `true`, new active contacts receive a welcome email.
     pub enabled: bool,
@@ -601,6 +739,74 @@ pub struct ConfigureWelcomeEmailParams {
     /// Delay before the welcome email is sent, in seconds. `0` is immediate.
     /// Maximum is [`MAX_WELCOME_DELAY_SECONDS`] (7 days).
     pub delay_seconds: i32,
+}
+
+impl ConfigureWelcomeEmailParams {
+    /// Start a disabled welcome-email config — turns the feature off when sent.
+    ///
+    /// Use [`enable`](Self::enable) to switch on, then chain setters:
+    ///
+    /// ```rust,no_run
+    /// use euromail::ConfigureWelcomeEmailParams;
+    ///
+    /// let params = ConfigureWelcomeEmailParams::new()
+    ///     .enable()
+    ///     .subject("Welcome!")
+    ///     .html_body("<h1>Hi</h1>")
+    ///     .delay_seconds(120);
+    /// ```
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Enable the welcome email (sets `enabled: true`).
+    pub fn enable(mut self) -> Self {
+        self.enabled = true;
+        self
+    }
+
+    /// Disable the welcome email (sets `enabled: false`).
+    pub fn disable(mut self) -> Self {
+        self.enabled = false;
+        self
+    }
+
+    /// Set the subject line. Required when `enabled` and no `template_id` is set.
+    pub fn subject(mut self, subject: impl Into<String>) -> Self {
+        self.subject = Some(subject.into());
+        self
+    }
+
+    /// Set the inline HTML body. Mutually exclusive with `template_id`.
+    pub fn html_body(mut self, html: impl Into<String>) -> Self {
+        self.html_body = Some(html.into());
+        self
+    }
+
+    /// Set the inline plain-text body. Mutually exclusive with `template_id`.
+    pub fn text_body(mut self, text: impl Into<String>) -> Self {
+        self.text_body = Some(text.into());
+        self
+    }
+
+    /// Use a stored template. Mutually exclusive with inline bodies.
+    pub fn template_id(mut self, id: impl Into<String>) -> Self {
+        self.template_id = Some(id.into());
+        self
+    }
+
+    /// Override the sender address. Must belong to a verified domain.
+    pub fn from_address(mut self, from: impl Into<String>) -> Self {
+        self.from_address = Some(from.into());
+        self
+    }
+
+    /// Set the delay before sending, in seconds. Capped server-side at
+    /// [`MAX_WELCOME_DELAY_SECONDS`].
+    pub fn delay_seconds(mut self, seconds: i32) -> Self {
+        self.delay_seconds = seconds;
+        self
+    }
 }
 
 // ---- Analytics Types ----

@@ -208,13 +208,11 @@ async fn test_configure_welcome_email_with_inline_body() {
     let list = client
         .configure_welcome_email(
             "cl-100",
-            &ConfigureWelcomeEmailParams {
-                enabled: true,
-                subject: Some("Welcome!".to_string()),
-                html_body: Some("<h1>Hi</h1>".to_string()),
-                delay_seconds: 120,
-                ..Default::default()
-            },
+            &ConfigureWelcomeEmailParams::new()
+                .enable()
+                .subject("Welcome!")
+                .html_body("<h1>Hi</h1>")
+                .delay_seconds(120),
         )
         .await
         .unwrap();
@@ -252,11 +250,9 @@ async fn test_configure_welcome_email_with_template() {
     client
         .configure_welcome_email(
             "cl-100",
-            &ConfigureWelcomeEmailParams {
-                enabled: true,
-                template_id: Some("tpl-welcome".to_string()),
-                ..Default::default()
-            },
+            &ConfigureWelcomeEmailParams::new()
+                .enable()
+                .template_id("tpl-welcome"),
         )
         .await
         .unwrap();
@@ -293,13 +289,7 @@ async fn test_configure_welcome_email_disable() {
         .await;
 
     let list = client
-        .configure_welcome_email(
-            "cl-100",
-            &ConfigureWelcomeEmailParams {
-                enabled: false,
-                ..Default::default()
-            },
-        )
+        .configure_welcome_email("cl-100", &ConfigureWelcomeEmailParams::new().disable())
         .await
         .unwrap();
 
@@ -322,13 +312,7 @@ async fn test_configure_welcome_email_validation_error() {
         .await;
 
     let result = client
-        .configure_welcome_email(
-            "cl-100",
-            &ConfigureWelcomeEmailParams {
-                enabled: true,
-                ..Default::default()
-            },
-        )
+        .configure_welcome_email("cl-100", &ConfigureWelcomeEmailParams::new().enable())
         .await;
 
     match result {
