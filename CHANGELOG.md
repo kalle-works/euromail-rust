@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-23
+
+### Added
+
+- Fluent builder API on `SendEmailParams`: `new(from, to)` plus chainable
+  setters for every optional field (`subject`, `html_body`, `text_body`,
+  `template_alias`, `template_data`, `headers`, `tags`, `tag`, `metadata`,
+  `metadatum`, `attachments`, `attach`, `reply_to`, `cc`, `bcc`,
+  `idempotency_key`, `send_at`, `tracking`, `suppress_list_management_header`)
+- Fluent builder API on `ConfigureWelcomeEmailParams`: `new`, `enable`,
+  `disable`, plus chainable `subject`, `html_body`, `text_body`, `template_id`,
+  `from_address`, `delay_seconds`
+
+### Changed
+
+- **BREAKING:** `SendEmailParams` and `ConfigureWelcomeEmailParams` are now
+  marked `#[non_exhaustive]`. Downstream crates can no longer construct these
+  types with a struct literal — use the builder constructors (`::new(...)`)
+  and chained setters instead. This makes future field additions non-breaking.
+
 ## [0.4.0] - 2026-04-23
 
 ### Added

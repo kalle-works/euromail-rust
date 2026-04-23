@@ -10,13 +10,11 @@
 //! # async fn run() -> Result<(), euromail::EuroMailError> {
 //! let client = EuroMail::new("em_live_your_api_key");
 //!
-//! let email = client.send_email(&SendEmailParams {
-//!     from: "you@yourdomain.com".into(),
-//!     to: "user@example.com".into(),
-//!     subject: Some("Hello from EuroMail".into()),
-//!     text_body: Some("Welcome!".into()),
-//!     ..Default::default()
-//! }).await?;
+//! let email = client.send_email(
+//!     &SendEmailParams::new("you@yourdomain.com", "user@example.com")
+//!         .subject("Hello from EuroMail")
+//!         .text_body("Welcome!"),
+//! ).await?;
 //!
 //! println!("Sent email: {}", email.id);
 //! # Ok(())

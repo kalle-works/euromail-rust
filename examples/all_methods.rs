@@ -123,15 +123,17 @@ async fn main() -> Result<(), EuroMailError> {
     println!("Deleted template");
 
     // ---- Emails ----
-    let from_domain = account.email.split('@').last().unwrap_or("example.com");
+    let from_domain = account
+        .email
+        .split('@')
+        .next_back()
+        .unwrap_or("example.com");
     let sent = client
-        .send_email(&SendEmailParams {
-            from: format!("test@{from_domain}"),
-            to: account.email.clone().into(),
-            subject: Some("SDK test".into()),
-            text_body: Some("Hello from the Rust SDK example!".into()),
-            ..Default::default()
-        })
+        .send_email(
+            &SendEmailParams::new(format!("test@{from_domain}"), account.email.clone())
+                .subject("SDK test")
+                .text_body("Hello from the Rust SDK example!"),
+        )
         .await?;
     println!("Sent email: {} (status: {})", sent.id, sent.status);
 

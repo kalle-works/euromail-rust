@@ -22,13 +22,11 @@ use euromail::{EuroMail, SendEmailParams};
 async fn main() -> Result<(), euromail::EuroMailError> {
     let client = EuroMail::new("em_live_your_api_key_here");
 
-    let response = client.send_email(&SendEmailParams {
-        from: "sender@yourdomain.com".into(),
-        to: "recipient@example.com".into(),
-        subject: Some("Hello from EuroMail".into()),
-        html_body: Some("<h1>Welcome!</h1>".into()),
-        ..Default::default()
-    }).await?;
+    let response = client.send_email(
+        &SendEmailParams::new("sender@yourdomain.com", "recipient@example.com")
+            .subject("Hello from EuroMail")
+            .html_body("<h1>Welcome!</h1>"),
+    ).await?;
 
     println!("Email queued: {}", response.id);
     Ok(())
@@ -47,19 +45,17 @@ let client = EuroMail::new("em_live_...");
 
 ```rust
 use euromail::SendEmailParams;
-use std::collections::HashMap;
 
-let response = client.send_email(&SendEmailParams {
-    from: "noreply@yourdomain.com".into(),
-    to: "user@example.com".into(),
-    subject: Some("Order Confirmation".into()),
-    html_body: Some("<h1>Thanks for your order!</h1>".into()),
-    text_body: Some("Thanks for your order!".into()),
-    reply_to: Some("support@yourdomain.com".into()),
-    tags: Some(vec!["order".into(), "confirmation".into()]),
-    metadata: Some(HashMap::from([("order_id".into(), "12345".into())])),
-    ..Default::default()
-}).await?;
+let response = client.send_email(
+    &SendEmailParams::new("noreply@yourdomain.com", "user@example.com")
+        .subject("Order Confirmation")
+        .html_body("<h1>Thanks for your order!</h1>")
+        .text_body("Thanks for your order!")
+        .reply_to("support@yourdomain.com")
+        .tag("order")
+        .tag("confirmation")
+        .metadatum("order_id", "12345"),
+).await?;
 ```
 
 ### Send with template
@@ -67,29 +63,25 @@ let response = client.send_email(&SendEmailParams {
 ```rust
 use serde_json::json;
 
-let response = client.send_email(&SendEmailParams {
-    from: "noreply@yourdomain.com".into(),
-    to: "user@example.com".into(),
-    template_alias: Some("welcome-email".into()),
-    template_data: Some(json!({
-        "name": "John",
-        "activation_url": "https://example.com/activate/abc123"
-    })),
-    ..Default::default()
-}).await?;
+let response = client.send_email(
+    &SendEmailParams::new("noreply@yourdomain.com", "user@example.com")
+        .template_alias("welcome-email")
+        .template_data(json!({
+            "name": "John",
+            "activation_url": "https://example.com/activate/abc123"
+        })),
+).await?;
 ```
 
 ### Schedule a send
 
 ```rust
-let response = client.send_email(&SendEmailParams {
-    from: "noreply@yourdomain.com".into(),
-    to: "user@example.com".into(),
-    subject: Some("Reminder".into()),
-    text_body: Some("Your trial ends tomorrow.".into()),
-    send_at: Some("2026-05-01T09:00:00Z".into()),
-    ..Default::default()
-}).await?;
+let response = client.send_email(
+    &SendEmailParams::new("noreply@yourdomain.com", "user@example.com")
+        .subject("Reminder")
+        .text_body("Your trial ends tomorrow.")
+        .send_at("2026-05-01T09:00:00Z"),
+).await?;
 
 assert_eq!(response.status, "scheduled");
 // response.scheduled_at echoes back the release time.
@@ -101,15 +93,13 @@ For password resets and receipts, disable tracking and strip the
 `List-Unsubscribe` headers the API otherwise adds:
 
 ```rust
-client.send_email(&SendEmailParams {
-    from: "security@yourdomain.com".into(),
-    to: "user@example.com".into(),
-    subject: Some("Reset your password".into()),
-    text_body: Some("Click the link to reset.".into()),
-    tracking: Some(false),
-    suppress_list_management_header: Some(true),
-    ..Default::default()
-}).await?;
+client.send_email(
+    &SendEmailParams::new("security@yourdomain.com", "user@example.com")
+        .subject("Reset your password")
+        .text_body("Click the link to reset.")
+        .tracking(false)
+        .suppress_list_management_header(true),
+).await?;
 ```
 
 ### Send with attachments
@@ -117,18 +107,16 @@ client.send_email(&SendEmailParams {
 ```rust
 use euromail::{SendEmailParams, Attachment};
 
-let response = client.send_email(&SendEmailParams {
-    from: "noreply@yourdomain.com".into(),
-    to: "user@example.com".into(),
-    subject: Some("Your Invoice".into()),
-    html_body: Some("<p>Please find your invoice attached.</p>".into()),
-    attachments: Some(vec![Attachment {
-        filename: "invoice.pdf".into(),
-        content: base64_encoded_content,
-        content_type: "application/pdf".into(),
-    }]),
-    ..Default::default()
-}).await?;
+let response = client.send_email(
+    &SendEmailParams::new("noreply@yourdomain.com", "user@example.com")
+        .subject("Your Invoice")
+        .html_body("<p>Please find your invoice attached.</p>")
+        .attach(Attachment {
+            filename: "invoice.pdf".into(),
+            content: base64_encoded_content,
+            content_type: "application/pdf".into(),
+        }),
+).await?;
 ```
 
 ### Batch send
@@ -138,20 +126,12 @@ use euromail::SendBatchParams;
 
 let batch = client.send_batch(&SendBatchParams {
     emails: vec![
-        SendEmailParams {
-            from: "noreply@yourdomain.com".into(),
-            to: "user1@example.com".into(),
-            subject: Some("Hello User 1".into()),
-            text_body: Some("Welcome!".into()),
-            ..Default::default()
-        },
-        SendEmailParams {
-            from: "noreply@yourdomain.com".into(),
-            to: "user2@example.com".into(),
-            subject: Some("Hello User 2".into()),
-            text_body: Some("Welcome!".into()),
-            ..Default::default()
-        },
+        SendEmailParams::new("noreply@yourdomain.com", "user1@example.com")
+            .subject("Hello User 1")
+            .text_body("Welcome!"),
+        SendEmailParams::new("noreply@yourdomain.com", "user2@example.com")
+            .subject("Hello User 2")
+            .text_body("Welcome!"),
     ],
 }).await?;
 
@@ -291,20 +271,20 @@ Configure an automatic welcome email that fires when a contact becomes active.
 ```rust
 use euromail::ConfigureWelcomeEmailParams;
 
-client.configure_welcome_email(&list.id, &ConfigureWelcomeEmailParams {
-    enabled: true,
-    subject: Some("Welcome to the list!".into()),
-    html_body: Some("<h1>Thanks for subscribing.</h1>".into()),
-    delay_seconds: 0,
-    ..Default::default()
-}).await?;
+client.configure_welcome_email(
+    &list.id,
+    &ConfigureWelcomeEmailParams::new()
+        .enable()
+        .subject("Welcome to the list!")
+        .html_body("<h1>Thanks for subscribing.</h1>"),
+).await?;
 
 let config = client.get_welcome_email(&list.id).await?;
 assert!(config.enabled);
 ```
 
 `template_id` and inline bodies are mutually exclusive. `delay_seconds` accepts
-`0..=604800` (up to 7 days).
+`0..=MAX_WELCOME_DELAY_SECONDS` (up to 7 days).
 
 ## Inbound Email
 
