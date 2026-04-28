@@ -21,7 +21,7 @@ impl EuroMail {
         self.post("/v1/emails", params).await
     }
 
-    /// Send up to 100 emails in a single request.
+    /// Send up to 500 emails in a single request.
     ///
     /// Returns both successful sends and per-email errors. Partial success is
     /// possible — check both `data` and `errors` in the response.

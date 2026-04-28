@@ -322,7 +322,7 @@ pub struct SendEmailResponse {
     pub created_at: String,
 }
 
-/// Parameters for sending multiple emails in a single request (up to 100).
+/// Parameters for sending multiple emails in a single request (up to 500).
 #[derive(Debug, Clone, Serialize)]
 pub struct SendBatchParams {
     pub emails: Vec<SendEmailParams>,
