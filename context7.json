@@ -1,0 +1,24 @@
+{
+  "projectTitle": "EuroMail Rust SDK",
+  "description": "Official Rust SDK for EuroMail — GDPR-compliant transactional email API with EU data residency. Send emails, manage domains, templates, webhooks, contact lists, signup forms, newsletters, inbound email, and AI agent mailboxes.",
+  "folders": [
+    "src",
+    "examples",
+    "tests"
+  ],
+  "excludeFolders": [
+    ".git",
+    "target"
+  ],
+  "rules": [
+    "Add to Cargo.toml: euromail = \"0.2\"",
+    "Initialize: let client = EuroMail::new(std::env::var(\"EUROMAIL_API_KEY\").unwrap())",
+    "send_email() is async and takes &SendEmailParams — use ..Default::default() for optional fields",
+    "Returns SendEmailResponse with .id and .status where status is 'queued'",
+    "Use template_alias field (String) not template_id when sending with a template",
+    "dns_records is HashMap<String, DnsRecord> keyed by purpose (dkim, return_path)",
+    "verify_domain() returns DomainVerificationResult with .checks HashMap",
+    "The from field must use the apex domain, not the sending subdomain (em.yourdomain.com)",
+    "Agent mailbox: get_next_mailbox_message() → process → ack_mailbox_message() with lease_token"
+  ]
+}
