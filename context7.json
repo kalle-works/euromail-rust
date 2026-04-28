@@ -2,6 +2,7 @@
   "projectTitle": "EuroMail Rust SDK",
   "description": "Rust SDK for EuroMail — GDPR-compliant transactional email API (EU data residency, Finland). Send emails, manage domains, templates, webhooks, contact lists, and AI agent mailboxes.",
   "folders": [
+    ".",
     "src",
     "examples",
     "tests"
