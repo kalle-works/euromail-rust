@@ -144,11 +144,18 @@ pub struct SendEmailParams {
     /// on even if the account default is off. Leave `None` to use the account default.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tracking: Option<bool>,
-    /// Omit `List-Unsubscribe` and `List-Unsubscribe-Post` headers. Use for
-    /// transactional emails (password resets, receipts) where an unsubscribe
-    /// link is inappropriate. Defaults to `false` server-side.
+    /// Whether this is a transactional email (password reset, receipt,
+    /// notification). When `Some(true)` (the server default), `List-Unsubscribe`
+    /// headers are omitted so Gmail routes the message to Primary instead of
+    /// Promotions. Set to `Some(false)` for marketing/newsletter emails that
+    /// need one-click unsubscribe.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub suppress_list_management_header: Option<bool>,
+    pub transactional: Option<bool>,
+    /// Message stream slug. Routes this email through the named stream,
+    /// enabling separate reputation tracking for transactional vs. marketing
+    /// email. Defaults to `"transactional"`; the stream must exist on the account.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stream: Option<String>,
 }
 
 impl SendEmailParams {
@@ -284,9 +291,18 @@ impl SendEmailParams {
         self
     }
 
-    /// Omit `List-Unsubscribe` headers for transactional mail.
-    pub fn suppress_list_management_header(mut self, suppress: bool) -> Self {
-        self.suppress_list_management_header = Some(suppress);
+    /// Mark this email as transactional (`Some(true)`) or marketing (`Some(false)`).
+    /// Transactional mail omits `List-Unsubscribe` headers; marketing mail
+    /// includes them for Gmail/Yahoo bulk-sender compliance.
+    pub fn transactional(mut self, transactional: bool) -> Self {
+        self.transactional = Some(transactional);
+        self
+    }
+
+    /// Route this email through a named message stream, isolating its
+    /// reputation tracking from other streams on the account.
+    pub fn stream(mut self, stream: impl Into<String>) -> Self {
+        self.stream = Some(stream.into());
         self
     }
 }
@@ -1147,6 +1163,17 @@ pub struct BroadcastParams {
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub send_at: Option<String>,
+    /// Per-broadcast open/click tracking override. Leave `None` to use the
+    /// account default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tracking: Option<bool>,
+    /// Whether this is a transactional broadcast. Defaults to `false`
+    /// server-side because bulk sends are typically marketing email that
+    /// needs `List-Unsubscribe` headers for Gmail/Yahoo compliance. Set to
+    /// `Some(true)` only for operational bulk sends (e.g. account migration
+    /// notices) where unsubscribe headers are inappropriate.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transactional: Option<bool>,
 }
 
 /// Response from a broadcast send.
