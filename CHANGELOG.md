@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-07
+
+### Added
+
+- `SendEmailParams` builder: `.transactional(bool)` and `.stream(impl Into<String>)`,
+  matching the current `/v1/emails` API (added 2026-05).
+- `BroadcastParams`: `tracking` and `transactional` fields.
+
+### Changed
+
+- **BREAKING:** Removed `SendEmailParams::suppress_list_management_header` (field
+  and builder method). The server dropped this field from the public API on
+  2026-05-03 in favor of `transactional`, so it had become a silent no-op —
+  callers relying on it got no error, but the field was never read server-side.
+  Since single-send `transactional` defaults to `true` server-side and this
+  crate had no way to set it to `false`, every email sent through this SDK was
+  silently treated as transactional (no `List-Unsubscribe` header), even
+  intentional marketing/newsletter sends. Replace
+  `.suppress_list_management_header(true)` with `.transactional(true)` (the
+  default) and `.suppress_list_management_header(false)` with
+  `.transactional(false)`.
+
 ## [0.5.0] - 2026-04-23
 
 ### Added

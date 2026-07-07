@@ -87,18 +87,24 @@ assert_eq!(response.status, "scheduled");
 // response.scheduled_at echoes back the release time.
 ```
 
-### Transactional overrides
+### Scheduling, tracking, and marketing sends
 
-For password resets and receipts, disable tracking and strip the
-`List-Unsubscribe` headers the API otherwise adds:
+Single sends default to `transactional = true`, which omits `List-Unsubscribe`
+headers so Gmail routes the message to Primary instead of Promotions — the
+right default for password resets and receipts. For marketing or newsletter
+mail, opt in to `List-Unsubscribe` with `transactional(false)`, and route it
+through its own message stream to keep its reputation isolated from
+transactional sends:
 
 ```rust
 client.send_email(
-    &SendEmailParams::new("security@yourdomain.com", "user@example.com")
-        .subject("Reset your password")
-        .text_body("Click the link to reset.")
-        .tracking(false)
-        .suppress_list_management_header(true),
+    &SendEmailParams::new("news@yourdomain.com", "user@example.com")
+        .subject("This week in your inbox")
+        .html_body("<p>Latest updates...</p>")
+        .send_at("2026-08-01T09:00:00Z") // schedule delivery
+        .tracking(true) // per-email open/click override
+        .transactional(false) // adds List-Unsubscribe for marketing/newsletter mail
+        .stream("marketing"), // isolate reputation from transactional sends
 ).await?;
 ```
 

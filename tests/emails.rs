@@ -248,7 +248,8 @@ async fn test_send_email_scheduled_with_tracking_override() {
         .and(body_partial_json(serde_json::json!({
             "send_at": "2026-05-01T09:00:00Z",
             "tracking": false,
-            "suppress_list_management_header": true
+            "transactional": true,
+            "stream": "transactional"
         })))
         .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({
             "data": {
@@ -269,7 +270,8 @@ async fn test_send_email_scheduled_with_tracking_override() {
         .text_body("Hi")
         .send_at("2026-05-01T09:00:00Z")
         .tracking(false)
-        .suppress_list_management_header(true);
+        .transactional(true)
+        .stream("transactional");
 
     let response = client.send_email(&params).await.unwrap();
     assert_eq!(response.status, "scheduled");
@@ -278,6 +280,41 @@ async fn test_send_email_scheduled_with_tracking_override() {
         response.scheduled_at.as_deref(),
         Some("2026-05-01T09:00:00Z")
     );
+}
+
+#[tokio::test]
+async fn test_send_email_marketing_stream() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+
+    Mock::given(method("POST"))
+        .and(path("/v1/emails"))
+        .and(body_partial_json(serde_json::json!({
+            "transactional": false,
+            "stream": "marketing"
+        })))
+        .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({
+            "data": {
+                "id": "email-marketing",
+                "message_id": "<marketing@euromail.dev>",
+                "status": "queued",
+                "to": "recipient@example.com",
+                "sandbox": false,
+                "scheduled_at": null,
+                "created_at": "2026-07-07T10:00:00Z"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let params = SendEmailParams::new("news@example.com", "recipient@example.com")
+        .subject("This week in your inbox")
+        .html_body("<p>Latest updates...</p>")
+        .transactional(false)
+        .stream("marketing");
+
+    let response = client.send_email(&params).await.unwrap();
+    assert_eq!(response.id, "email-marketing");
 }
 
 #[tokio::test]
