@@ -14,6 +14,12 @@ pub struct AgentMailbox {
     pub address: String,
     pub display_name: Option<String>,
     pub created_at: String,
+    #[serde(default)]
+    pub webhook_filters: Option<serde_json::Value>,
+    #[serde(default)]
+    pub auto_responder_rules: serde_json::Value,
+    #[serde(default)]
+    pub auto_responder_enabled: bool,
 }
 
 /// A message delivered to an agent mailbox.
@@ -34,6 +40,24 @@ pub struct MailboxMessage {
     pub labels: Vec<String>,
     pub read_at: Option<String>,
     pub created_at: String,
+    #[serde(default)]
+    pub in_reply_to: Option<String>,
+    #[serde(default)]
+    pub references_header: Option<String>,
+    #[serde(default)]
+    pub attachments_stored: bool,
+    #[serde(default)]
+    pub attachments_metadata: Option<serde_json::Value>,
+    #[serde(default)]
+    pub classification: Option<String>,
+    #[serde(default)]
+    pub classification_confidence: Option<f32>,
+    #[serde(default)]
+    pub classified_at: Option<String>,
+    #[serde(default)]
+    pub leased_until: Option<String>,
+    #[serde(default)]
+    pub lease_token: Option<String>,
 }
 
 /// A mailbox message returned by [`EuroMail::wait_for_next_message`], together
@@ -43,6 +67,63 @@ pub struct LeasedMessage {
     pub data: MailboxMessage,
     pub lease_token: String,
     pub lease_expires_at: String,
+}
+
+/// Result of replying to a mailbox message via [`EuroMail::reply_to_message`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MailboxReplyResult {
+    pub id: String,
+    pub status: String,
+    pub message_id: String,
+    pub to: String,
+    pub subject: String,
+}
+
+/// A downloadable attachment on a mailbox message.
+///
+/// Normally each item carries a pre-signed download `url` (valid ~1 hour) plus
+/// `content_type`, `size`, and `expires_in_seconds`. If the attachment bytes
+/// were never persisted to object storage, the server instead returns the raw
+/// stored metadata, which may omit `url`/`expires_in_seconds` — hence every
+/// field is optional and defaults so both response shapes deserialize cleanly.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MailboxAttachmentUrl {
+    #[serde(default)]
+    pub filename: Option<String>,
+    #[serde(default)]
+    pub content_type: Option<String>,
+    #[serde(default)]
+    pub size: Option<u64>,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub expires_in_seconds: Option<u64>,
+}
+
+/// A contact derived from the messages in a mailbox.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MailboxContact {
+    pub email: String,
+    pub display_name: Option<String>,
+    pub message_count: i64,
+    pub last_seen: String,
+}
+
+/// Aggregate message statistics for a mailbox.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MailboxAnalytics {
+    pub total_messages: i64,
+    pub unread_messages: i64,
+    pub total_threads: i64,
+    pub messages_today: i64,
+    pub messages_this_week: i64,
+}
+
+/// Auto-responder configuration for a mailbox.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoResponderConfig {
+    pub auto_responder_enabled: bool,
+    pub auto_responder_rules: serde_json::Value,
 }
 
 /// Parameters for creating an agent mailbox.
@@ -65,9 +146,43 @@ pub struct ListMessagesParams {
     pub offset: Option<i64>,
 }
 
+/// Parameters for replying to a mailbox message.
+///
+/// At least one of `text_body` or `html_body` must be set; the server rejects
+/// the request with `400` if both are absent.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct ReplyToMessageParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_body: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub html_body: Option<String>,
+}
+
+/// Parameters for updating a mailbox's auto-responder.
+///
+/// `rules` is an opaque JSON array of rule objects, roughly
+/// `{"match": ..., "action": {"reply_text"?: string, "reply_html"?: string}}`.
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct UpdateAutoResponderParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rules: Option<serde_json::Value>,
+}
+
 #[derive(Serialize)]
 struct LeaseAck<'a> {
     lease_token: &'a str,
+}
+
+#[derive(Serialize)]
+struct LabelsBody<'a> {
+    labels: &'a [String],
+}
+
+#[derive(Deserialize)]
+struct LabelsData {
+    labels: Vec<String>,
 }
 
 impl EuroMail {
@@ -268,6 +383,173 @@ impl EuroMail {
             .send()
             .await?;
         check_status_empty(resp).await
+    }
+
+    /// Send a reply to a message in a mailbox.
+    ///
+    /// At least one of `text_body`/`html_body` must be set on `params`; the
+    /// server rejects the request otherwise.
+    pub async fn reply_to_message(
+        &self,
+        mailbox_id: &str,
+        message_id: &str,
+        params: ReplyToMessageParams,
+    ) -> Result<MailboxReplyResult, EuroMailError> {
+        self.post(
+            &format!("/v1/agent-mailboxes/{mailbox_id}/messages/{message_id}/reply"),
+            &params,
+        )
+        .await
+    }
+
+    /// List threads in a mailbox, one row per thread (its latest message).
+    pub async fn list_mailbox_threads(
+        &self,
+        mailbox_id: &str,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<MailboxMessage>, EuroMailError> {
+        let mut query: Vec<(&str, String)> = Vec::new();
+        if let Some(limit) = limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(offset) = offset {
+            query.push(("offset", offset.to_string()));
+        }
+        let envelope: DataEnvelope<Vec<MailboxMessage>> = self
+            .get_with_query(&format!("/v1/agent-mailboxes/{mailbox_id}/threads"), &query)
+            .await?;
+        Ok(envelope.data)
+    }
+
+    /// Retrieve a full thread, returned chronologically ascending.
+    pub async fn get_mailbox_thread(
+        &self,
+        mailbox_id: &str,
+        thread_id: &str,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<MailboxMessage>, EuroMailError> {
+        let mut query: Vec<(&str, String)> = Vec::new();
+        if let Some(limit) = limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(offset) = offset {
+            query.push(("offset", offset.to_string()));
+        }
+        let envelope: DataEnvelope<Vec<MailboxMessage>> = self
+            .get_with_query(
+                &format!("/v1/agent-mailboxes/{mailbox_id}/threads/{thread_id}"),
+                &query,
+            )
+            .await?;
+        Ok(envelope.data)
+    }
+
+    /// Full-text search messages in a mailbox.
+    ///
+    /// `query` must be 1–500 characters; the server rejects an empty or
+    /// over-long query.
+    pub async fn search_mailbox_messages(
+        &self,
+        mailbox_id: &str,
+        query: &str,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<MailboxMessage>, EuroMailError> {
+        let mut q: Vec<(&str, String)> = vec![("q", query.to_string())];
+        if let Some(limit) = limit {
+            q.push(("limit", limit.to_string()));
+        }
+        if let Some(offset) = offset {
+            q.push(("offset", offset.to_string()));
+        }
+        let envelope: DataEnvelope<Vec<MailboxMessage>> = self
+            .get_with_query(
+                &format!("/v1/agent-mailboxes/{mailbox_id}/messages/search"),
+                &q,
+            )
+            .await?;
+        Ok(envelope.data)
+    }
+
+    /// Replace the labels on a message (full replace, not a merge).
+    ///
+    /// Each label must be 1–64 characters of alphanumerics, dashes, or
+    /// underscores; at most 50 labels are allowed.
+    pub async fn update_message_labels(
+        &self,
+        mailbox_id: &str,
+        message_id: &str,
+        labels: &[String],
+    ) -> Result<Vec<String>, EuroMailError> {
+        let data: LabelsData = self
+            .put(
+                &format!("/v1/agent-mailboxes/{mailbox_id}/messages/{message_id}/labels"),
+                &LabelsBody { labels },
+            )
+            .await?;
+        Ok(data.labels)
+    }
+
+    /// Get downloadable URLs for a message's attachments.
+    ///
+    /// See [`MailboxAttachmentUrl`] for the fallback shape returned when the
+    /// attachment bytes were never persisted to object storage.
+    pub async fn get_message_attachment_urls(
+        &self,
+        mailbox_id: &str,
+        message_id: &str,
+    ) -> Result<Vec<MailboxAttachmentUrl>, EuroMailError> {
+        self.get(&format!(
+            "/v1/agent-mailboxes/{mailbox_id}/messages/{message_id}/attachments"
+        ))
+        .await
+    }
+
+    /// List contacts derived from a mailbox's messages.
+    pub async fn list_mailbox_contacts(
+        &self,
+        mailbox_id: &str,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<MailboxContact>, EuroMailError> {
+        let mut query: Vec<(&str, String)> = Vec::new();
+        if let Some(limit) = limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(offset) = offset {
+            query.push(("offset", offset.to_string()));
+        }
+        let envelope: DataEnvelope<Vec<MailboxContact>> = self
+            .get_with_query(
+                &format!("/v1/agent-mailboxes/{mailbox_id}/contacts"),
+                &query,
+            )
+            .await?;
+        Ok(envelope.data)
+    }
+
+    /// Retrieve aggregate message statistics for a mailbox.
+    pub async fn get_mailbox_analytics(
+        &self,
+        mailbox_id: &str,
+    ) -> Result<MailboxAnalytics, EuroMailError> {
+        self.get(&format!("/v1/agent-mailboxes/{mailbox_id}/analytics"))
+            .await
+    }
+
+    /// Update a mailbox's auto-responder configuration.
+    pub async fn update_auto_responder(
+        &self,
+        mailbox_id: &str,
+        params: UpdateAutoResponderParams,
+    ) -> Result<AutoResponderConfig, EuroMailError> {
+        self.patch(
+            &format!("/v1/agent-mailboxes/{mailbox_id}/auto-responder"),
+            &params,
+        )
+        .await
     }
 }
 

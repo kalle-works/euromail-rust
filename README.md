@@ -466,7 +466,13 @@ loop {
 # async fn handle(_msg: &euromail::MailboxMessage) -> Result<(), euromail::EuroMailError> { Ok(()) }
 ```
 
-Other methods: `list_mailboxes`, `get_mailbox`, `delete_mailbox`, `list_mailbox_messages`, `delete_mailbox_message`.
+Other methods:
+
+- Mailboxes: `list_mailboxes`, `get_mailbox`, `delete_mailbox`
+- Messages: `list_mailbox_messages`, `delete_mailbox_message`, `search_mailbox_messages`, `reply_to_message`, `update_message_labels`, `get_message_attachment_urls`
+- Threads: `list_mailbox_threads`, `get_mailbox_thread`
+- Contacts & analytics: `list_mailbox_contacts`, `get_mailbox_analytics`
+- Auto-responder: `update_auto_responder`
 
 See the [Agent Mailboxes guide](https://euromail.dev/docs/guides/agent-mailboxes/) for the full flow, duplicate handling, and horizontal scaling patterns.
 

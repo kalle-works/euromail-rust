@@ -74,6 +74,8 @@ mod webhooks;
 pub use client::EuroMail;
 pub use errors::EuroMailError;
 pub use mailboxes::{
-    AgentMailbox, CreateMailboxParams, LeasedMessage, ListMessagesParams, MailboxMessage,
+    AgentMailbox, AutoResponderConfig, CreateMailboxParams, LeasedMessage, ListMessagesParams,
+    MailboxAnalytics, MailboxAttachmentUrl, MailboxContact, MailboxMessage, MailboxReplyResult,
+    ReplyToMessageParams, UpdateAutoResponderParams,
 };
 pub use types::*;
