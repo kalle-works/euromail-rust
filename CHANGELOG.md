@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-07
+
+### Added
+
+- Agent mailbox parity methods on `EuroMail`:
+  - `reply_to_message` — send a reply to a mailbox message.
+  - `list_mailbox_threads` / `get_mailbox_thread` — browse threads and read a
+    full thread chronologically.
+  - `search_mailbox_messages` — full-text search within a mailbox.
+  - `update_message_labels` — replace the labels on a message.
+  - `get_message_attachment_urls` — fetch pre-signed attachment download URLs.
+  - `list_mailbox_contacts` — list contacts derived from a mailbox's messages.
+  - `get_mailbox_analytics` — aggregate message statistics for a mailbox.
+  - `update_auto_responder` — configure a mailbox's auto-responder.
+- New public types: `MailboxReplyResult`, `MailboxAttachmentUrl`,
+  `MailboxContact`, `MailboxAnalytics`, `AutoResponderConfig`,
+  `ReplyToMessageParams`, `UpdateAutoResponderParams`.
+- Additional fields on `AgentMailbox` (`webhook_filters`,
+  `auto_responder_rules`, `auto_responder_enabled`) and `MailboxMessage`
+  (`in_reply_to`, `references_header`, `attachments_stored`,
+  `attachments_metadata`, `classification`, `classification_confidence`,
+  `classified_at`, `leased_until`, `lease_token`).
+
 ## [0.6.0] - 2026-07-07
 
 ### Added
