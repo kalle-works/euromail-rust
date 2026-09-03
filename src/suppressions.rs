@@ -2,7 +2,10 @@ use serde::Serialize;
 
 use crate::client::EuroMail;
 use crate::errors::EuroMailError;
-use crate::types::{ListParams, PaginatedResponse, Suppression};
+use crate::types::{
+    ImportSuppressionsParams, ImportSuppressionsResult, ListParams, PaginatedResponse,
+    Suppression,
+};
 
 #[derive(Serialize)]
 struct AddSuppressionBody {
@@ -48,5 +51,22 @@ impl EuroMail {
             }
         }
         self.get_with_query("/v1/suppressions", &query).await
+    }
+
+    /// Bulk-import addresses onto the suppression list (up to 10,000 per request).
+    ///
+    /// Invalid addresses are reported back rather than causing the whole request
+    /// to fail; check `invalid_addresses` on the result. Already-suppressed
+    /// addresses are silently skipped and not counted in `inserted`.
+    pub async fn import_suppressions(
+        &self,
+        params: &ImportSuppressionsParams,
+    ) -> Result<ImportSuppressionsResult, EuroMailError> {
+        self.post("/v1/suppressions/import", params).await
+    }
+
+    /// Export the entire suppression list as CSV.
+    pub async fn export_suppressions(&self) -> Result<String, EuroMailError> {
+        self.get_raw("/v1/suppressions/export", &[]).await
     }
 }

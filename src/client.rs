@@ -267,27 +267,34 @@ impl EuroMail {
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u64>().ok());
 
-        let body: ApiErrorBody = resp.json().await.unwrap_or(ApiErrorBody {
-            code: "unknown".to_string(),
-            message: "Unknown error".to_string(),
-        });
+        let body: ApiErrorBody = resp.json().await.unwrap_or_default();
+        let (code, message, error_type) = body.resolve();
 
-        Err(match status {
-            401 => EuroMailError::Authentication(body.message),
-            404 => EuroMailError::NotFound(body.message),
-            422 => EuroMailError::Validation {
-                code: body.code,
-                message: body.message,
-            },
-            429 => EuroMailError::RateLimit {
-                retry_after,
-                message: body.message,
-            },
-            _ => EuroMailError::Api {
-                status,
-                code: body.code,
-                message: body.message,
-            },
+        // The API returns validation failures as both HTTP 400 (most
+        // `AppError::Validation` call sites) and HTTP 422 (a handful of
+        // `ApiError::UnprocessableEntity` call sites) — the status code alone
+        // doesn't distinguish "malformed request" from "validation failed", so
+        // classify by the error's own `code`/`type` first and fall back to
+        // status for everything else.
+        let is_validation = error_type.as_deref() == Some("validation_error")
+            || code == "VALIDATION_ERROR";
+
+        Err(if is_validation {
+            EuroMailError::Validation { code, message }
+        } else {
+            match status {
+                401 => EuroMailError::Authentication(message),
+                404 => EuroMailError::NotFound(message),
+                429 => EuroMailError::RateLimit {
+                    retry_after,
+                    message,
+                },
+                _ => EuroMailError::Api {
+                    status,
+                    code,
+                    message,
+                },
+            }
         })
     }
 }

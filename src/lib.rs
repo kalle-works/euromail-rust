@@ -43,11 +43,24 @@
 //! - **Audit logs** — review account activity
 //! - **Dead letters** — inspect and retry failed deliveries
 //! - **Insights** — trigger AI-generated operational reports
+//!
+//! ## Verifying webhook signatures
+//!
+//! ```rust,no_run
+//! use euromail::verify_webhook_signature;
+//!
+//! # fn handle_request(body: &[u8], signature_header: &str, secret: &str) -> Result<(), Box<dyn std::error::Error>> {
+//! verify_webhook_signature(body, signature_header, secret)?;
+//! // Safe to trust: this request came from EuroMail.
+//! # Ok(())
+//! # }
+//! ```
 
 pub mod client;
 pub mod errors;
 pub mod mailboxes;
 pub mod types;
+pub mod webhook_signature;
 
 mod account;
 mod analytics;
@@ -79,3 +92,7 @@ pub use mailboxes::{
     ReplyToMessageParams, UpdateAutoResponderParams,
 };
 pub use types::*;
+pub use webhook_signature::{
+    verify_webhook_signature, verify_webhook_signature_at, WebhookSignatureError,
+    DEFAULT_TOLERANCE_SECONDS,
+};

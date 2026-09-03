@@ -58,18 +58,54 @@ pub enum EuroMailError {
     Http(#[from] reqwest::Error),
 }
 
-#[derive(Deserialize)]
+/// The EuroMail API wraps error details in a nested `error` object:
+/// `{"error": {"type": "...", "code": "...", "message": "..."}}`. This
+/// mirrors that shape while also accepting a flat body (`{"code", "message"}`)
+/// for forward compatibility, since some endpoints or future API versions may
+/// not nest it.
+#[derive(Debug, Default, Deserialize)]
 pub(crate) struct ApiErrorBody {
-    #[serde(default = "default_code")]
-    pub code: String,
-    #[serde(default = "default_message")]
-    pub message: String,
+    #[serde(default)]
+    pub error: Option<ApiErrorDetail>,
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub message: Option<String>,
+    #[serde(rename = "type", default)]
+    pub error_type: Option<String>,
 }
 
-fn default_code() -> String {
-    "unknown".to_string()
+#[derive(Debug, Default, Deserialize)]
+pub(crate) struct ApiErrorDetail {
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub message: Option<String>,
+    #[serde(rename = "type", default)]
+    pub error_type: Option<String>,
 }
 
-fn default_message() -> String {
-    "Unknown error".to_string()
+impl ApiErrorBody {
+    /// Resolve to `(code, message, type)`, preferring the nested `error`
+    /// object when present and falling back to a flat body, then finally to
+    /// generic placeholders if the response body didn't parse as JSON at all
+    /// or carried neither shape.
+    pub(crate) fn resolve(self) -> (String, String, Option<String>) {
+        let nested = self.error;
+        let code = nested
+            .as_ref()
+            .and_then(|e| e.code.clone())
+            .or(self.code)
+            .unwrap_or_else(|| "unknown".to_string());
+        let message = nested
+            .as_ref()
+            .and_then(|e| e.message.clone())
+            .or(self.message)
+            .unwrap_or_else(|| "Unknown error".to_string());
+        let error_type = nested
+            .as_ref()
+            .and_then(|e| e.error_type.clone())
+            .or(self.error_type);
+        (code, message, error_type)
+    }
 }
