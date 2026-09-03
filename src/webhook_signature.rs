@@ -72,7 +72,13 @@ pub fn verify_webhook_signature(
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
-    verify_webhook_signature_at(payload, signature_header, secret, now, DEFAULT_TOLERANCE_SECONDS)
+    verify_webhook_signature_at(
+        payload,
+        signature_header,
+        secret,
+        now,
+        DEFAULT_TOLERANCE_SECONDS,
+    )
 }
 
 /// Like [`verify_webhook_signature`], but with an explicit reference time and
@@ -277,9 +283,6 @@ mod tests {
         let sig = hex::encode(mac.finalize().into_bytes());
         let header = format!("t={now},v1={sig}");
 
-        assert_eq!(
-            verify_webhook_signature(PAYLOAD, &header, SECRET),
-            Ok(())
-        );
+        assert_eq!(verify_webhook_signature(PAYLOAD, &header, SECRET), Ok(()));
     }
 }

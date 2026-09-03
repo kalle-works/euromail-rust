@@ -276,8 +276,8 @@ impl EuroMail {
         // doesn't distinguish "malformed request" from "validation failed", so
         // classify by the error's own `code`/`type` first and fall back to
         // status for everything else.
-        let is_validation = error_type.as_deref() == Some("validation_error")
-            || code == "VALIDATION_ERROR";
+        let is_validation =
+            error_type.as_deref() == Some("validation_error") || code == "VALIDATION_ERROR";
 
         Err(if is_validation {
             EuroMailError::Validation { code, message }

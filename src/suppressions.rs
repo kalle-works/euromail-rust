@@ -3,8 +3,7 @@ use serde::Serialize;
 use crate::client::EuroMail;
 use crate::errors::EuroMailError;
 use crate::types::{
-    ImportSuppressionsParams, ImportSuppressionsResult, ListParams, PaginatedResponse,
-    Suppression,
+    ImportSuppressionsParams, ImportSuppressionsResult, ListParams, PaginatedResponse, Suppression,
 };
 
 #[derive(Serialize)]
