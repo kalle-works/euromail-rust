@@ -55,11 +55,16 @@ async fn test_validation_error() {
     let mock_server = MockServer::start().await;
     let client = EuroMail::with_base_url("test-key", &mock_server.uri());
 
+    // Matches the real server's envelope for a validation failure — see
+    // the equivalent note in tests/contact_lists.rs.
     Mock::given(method("POST"))
         .and(path("/v1/emails"))
         .respond_with(ResponseTemplate::new(422).set_body_json(serde_json::json!({
-            "code": "invalid_params",
-            "message": "Missing required field: to"
+            "error": {
+                "type": "validation_error",
+                "code": "VALIDATION_ERROR",
+                "message": "Missing required field: to"
+            }
         })))
         .mount(&mock_server)
         .await;
@@ -70,7 +75,7 @@ async fn test_validation_error() {
     assert!(result.is_err());
     match result.unwrap_err() {
         EuroMailError::Validation { code, message } => {
-            assert_eq!(code, "invalid_params");
+            assert_eq!(code, "VALIDATION_ERROR");
             assert_eq!(message, "Missing required field: to");
         }
         other => panic!("Expected Validation error, got: {other:?}"),

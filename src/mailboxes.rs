@@ -305,27 +305,32 @@ impl EuroMail {
                 .and_then(|v| v.to_str().ok())
                 .and_then(|v| v.parse::<u64>().ok());
 
-            let body: ApiErrorBody = resp.json().await.unwrap_or(ApiErrorBody {
-                code: "unknown".to_string(),
-                message: "Unknown error".to_string(),
-            });
+            let body: ApiErrorBody = resp.json().await.unwrap_or_default();
+            let (code, message, error_type) = body.resolve();
 
-            return Err(match status {
-                401 => EuroMailError::Authentication(body.message),
-                404 => EuroMailError::NotFound(body.message),
-                422 => EuroMailError::Validation {
-                    code: body.code,
-                    message: body.message,
-                },
-                429 => EuroMailError::RateLimit {
-                    retry_after,
-                    message: body.message,
-                },
-                _ => EuroMailError::Api {
-                    status,
-                    code: body.code,
-                    message: body.message,
-                },
+            // Same classify-by-code/type-before-status rule as EuroMail's
+            // request path (see client.rs): the API returns validation
+            // failures as both HTTP 400 and HTTP 422 depending on the
+            // endpoint.
+            let is_validation =
+                error_type.as_deref() == Some("validation_error") || code == "VALIDATION_ERROR";
+
+            return Err(if is_validation {
+                EuroMailError::Validation { code, message }
+            } else {
+                match status {
+                    401 => EuroMailError::Authentication(message),
+                    404 => EuroMailError::NotFound(message),
+                    429 => EuroMailError::RateLimit {
+                        retry_after,
+                        message,
+                    },
+                    _ => EuroMailError::Api {
+                        status,
+                        code,
+                        message,
+                    },
+                }
             });
         }
 
@@ -565,26 +570,27 @@ async fn check_status_empty(resp: reqwest::Response) -> Result<(), EuroMailError
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<u64>().ok());
 
-    let body: ApiErrorBody = resp.json().await.unwrap_or(ApiErrorBody {
-        code: "unknown".to_string(),
-        message: "Unknown error".to_string(),
-    });
+    let body: ApiErrorBody = resp.json().await.unwrap_or_default();
+    let (code, message, error_type) = body.resolve();
 
-    Err(match status {
-        401 => EuroMailError::Authentication(body.message),
-        404 => EuroMailError::NotFound(body.message),
-        422 => EuroMailError::Validation {
-            code: body.code,
-            message: body.message,
-        },
-        429 => EuroMailError::RateLimit {
-            retry_after,
-            message: body.message,
-        },
-        _ => EuroMailError::Api {
-            status,
-            code: body.code,
-            message: body.message,
-        },
+    let is_validation =
+        error_type.as_deref() == Some("validation_error") || code == "VALIDATION_ERROR";
+
+    Err(if is_validation {
+        EuroMailError::Validation { code, message }
+    } else {
+        match status {
+            401 => EuroMailError::Authentication(message),
+            404 => EuroMailError::NotFound(message),
+            429 => EuroMailError::RateLimit {
+                retry_after,
+                message,
+            },
+            _ => EuroMailError::Api {
+                status,
+                code,
+                message,
+            },
+        }
     })
 }

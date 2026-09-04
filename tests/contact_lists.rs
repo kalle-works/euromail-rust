@@ -302,11 +302,22 @@ async fn test_configure_welcome_email_validation_error() {
     let mock_server = MockServer::start().await;
     let client = EuroMail::with_base_url("test-key", &mock_server.uri());
 
+    // Matches the real server's envelope for a validation failure — nested
+    // under "error", code "VALIDATION_ERROR", type "validation_error" (see
+    // `ApiError::UnprocessableEntity` in the main API repo's errors.rs).
+    // An earlier version of this fixture used a made-up "invalid_params"
+    // code that the server never actually sends, which only passed because
+    // the SDK used to classify by HTTP status alone; classifying by the
+    // error's own code/type (so a malformed-body 400 also comes back as
+    // Validation, not just a 422) requires the fixture to be realistic.
     Mock::given(method("PUT"))
         .and(path("/v1/contact-lists/cl-100/welcome-email"))
         .respond_with(ResponseTemplate::new(422).set_body_json(serde_json::json!({
-            "code": "invalid_params",
-            "message": "welcome email requires either template_id or html_body/text_body when enabled"
+            "error": {
+                "type": "validation_error",
+                "code": "VALIDATION_ERROR",
+                "message": "welcome email requires either template_id or html_body/text_body when enabled"
+            }
         })))
         .mount(&mock_server)
         .await;
@@ -317,7 +328,7 @@ async fn test_configure_welcome_email_validation_error() {
 
     match result {
         Err(EuroMailError::Validation { code, message }) => {
-            assert_eq!(code, "invalid_params");
+            assert_eq!(code, "VALIDATION_ERROR");
             assert!(message.contains("template_id"));
         }
         other => panic!("expected Validation error, got {other:?}"),

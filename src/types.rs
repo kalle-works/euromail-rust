@@ -599,6 +599,43 @@ pub struct Suppression {
     pub created_at: String,
 }
 
+/// Parameters for bulk-importing addresses onto the suppression list.
+#[derive(Debug, Clone, Serialize)]
+pub struct ImportSuppressionsParams {
+    /// Addresses to suppress. Maximum 10,000 per request.
+    pub emails: Vec<String>,
+    /// Reason recorded for every imported address. Defaults to `"import"` if omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+impl ImportSuppressionsParams {
+    /// Start an import with the given addresses and the server's default reason (`"import"`).
+    pub fn new(emails: Vec<String>) -> Self {
+        Self {
+            emails,
+            reason: None,
+        }
+    }
+
+    /// Override the reason recorded for every imported address.
+    pub fn reason(mut self, reason: impl Into<String>) -> Self {
+        self.reason = Some(reason.into());
+        self
+    }
+}
+
+/// Result of a bulk suppression import.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ImportSuppressionsResult {
+    /// Number of addresses newly added to the suppression list (duplicates are skipped).
+    pub inserted: i64,
+    /// Number of addresses submitted in the request.
+    pub total_requested: usize,
+    /// Addresses that failed email-address validation and were not imported.
+    pub invalid_addresses: Vec<String>,
+}
+
 // ---- Contact List Types ----
 
 /// A named list of email contacts for batch operations.
