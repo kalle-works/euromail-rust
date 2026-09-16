@@ -13,6 +13,12 @@ euromail = "0.3"
 tokio = { version = "1", features = ["full"] }
 ```
 
+### Build requirements
+
+TLS is provided by `reqwest`'s `rustls` feature backed by `aws-lc-rs`, which
+compiles native code, so building this crate requires a C toolchain. On
+Windows, `aws-lc-rs` additionally requires CMake and NASM.
+
 ## Quick Start
 
 ```rust
