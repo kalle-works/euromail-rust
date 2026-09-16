@@ -25,5 +25,7 @@ jobs:
       - run: cargo build
       - run: cargo test
       - run: cargo clippy -- -D warnings
-      - run: cargo install cargo-audit --locked
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
       - run: cargo audit
