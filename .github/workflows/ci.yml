@@ -14,6 +14,10 @@ jobs:
     runs-on: kalle-works-arm64
     steps:
       - uses: actions/checkout@v7
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential pkg-config cmake
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
