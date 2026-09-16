@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_create_api_key() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/api-keys"))
@@ -37,7 +37,7 @@ async fn test_create_api_key() {
 #[tokio::test]
 async fn test_list_api_keys() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/api-keys"))
@@ -77,7 +77,7 @@ async fn test_list_api_keys() {
 #[tokio::test]
 async fn test_delete_api_key() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("DELETE"))
         .and(path("/v1/api-keys/key-123"))

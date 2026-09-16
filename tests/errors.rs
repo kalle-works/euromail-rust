@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_authentication_error() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("bad-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("bad-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/account"))
@@ -29,7 +29,7 @@ async fn test_authentication_error() {
 #[tokio::test]
 async fn test_not_found_error() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/emails/nonexistent"))
@@ -53,7 +53,7 @@ async fn test_not_found_error() {
 #[tokio::test]
 async fn test_validation_error() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     // Matches the real server's envelope for a validation failure — see
     // the equivalent note in tests/contact_lists.rs.
@@ -85,7 +85,7 @@ async fn test_validation_error() {
 #[tokio::test]
 async fn test_rate_limit_error() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/account"))
@@ -117,7 +117,7 @@ async fn test_rate_limit_error() {
 #[tokio::test]
 async fn test_server_error() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/account"))

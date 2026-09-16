@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_get_analytics_overview() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/analytics/overview"))
@@ -45,7 +45,7 @@ async fn test_get_analytics_overview() {
 #[tokio::test]
 async fn test_get_analytics_timeseries() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/analytics/timeseries"))
@@ -93,7 +93,7 @@ async fn test_get_analytics_timeseries() {
 #[tokio::test]
 async fn test_get_analytics_domains() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/analytics/domains"))
@@ -133,7 +133,7 @@ async fn test_get_analytics_domains() {
 #[tokio::test]
 async fn test_export_analytics_csv() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     let csv_content = "date,sent,delivered,bounced\n2026-03-06,100,98,2\n2026-03-07,120,118,2\n";
 
