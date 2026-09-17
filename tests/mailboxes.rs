@@ -26,7 +26,7 @@ fn message_json(id: &str) -> serde_json::Value {
 #[tokio::test]
 async fn test_create_mailbox() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/agent-mailboxes"))
@@ -61,7 +61,7 @@ async fn test_create_mailbox() {
 #[tokio::test]
 async fn test_list_mailboxes() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes"))
@@ -89,7 +89,7 @@ async fn test_list_mailboxes() {
 #[tokio::test]
 async fn test_wait_for_next_message_success() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/next"))
@@ -129,7 +129,7 @@ async fn test_wait_for_next_message_success() {
 #[tokio::test]
 async fn test_wait_for_next_message_408_returns_none() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/next"))
@@ -150,7 +150,7 @@ async fn test_wait_for_next_message_408_returns_none() {
 #[tokio::test]
 async fn test_ack_message() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/msg_1/ack"))
@@ -168,7 +168,7 @@ async fn test_ack_message() {
 #[tokio::test]
 async fn test_nack_message() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/msg_1/nack"))
@@ -186,7 +186,7 @@ async fn test_nack_message() {
 #[tokio::test]
 async fn test_reply_to_message() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/msg_1/reply"))
@@ -224,7 +224,7 @@ async fn test_reply_to_message() {
 #[tokio::test]
 async fn test_list_mailbox_threads() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/threads"))
@@ -246,7 +246,7 @@ async fn test_list_mailbox_threads() {
 #[tokio::test]
 async fn test_get_mailbox_thread() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/threads/thr_1"))
@@ -267,7 +267,7 @@ async fn test_get_mailbox_thread() {
 #[tokio::test]
 async fn test_search_mailbox_messages() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/search"))
@@ -289,7 +289,7 @@ async fn test_search_mailbox_messages() {
 #[tokio::test]
 async fn test_update_message_labels() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("PUT"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/msg_1/labels"))
@@ -316,7 +316,7 @@ async fn test_update_message_labels() {
 #[tokio::test]
 async fn test_get_message_attachment_urls() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/messages/msg_1/attachments"))
@@ -345,7 +345,7 @@ async fn test_get_message_attachment_urls() {
 #[tokio::test]
 async fn test_get_message_attachment_urls_fallback_metadata() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     // Fallback shape: bytes never persisted, so raw stored metadata lacks
     // `url`/`expires_in_seconds` and may carry only partial fields.
@@ -374,7 +374,7 @@ async fn test_get_message_attachment_urls_fallback_metadata() {
 #[tokio::test]
 async fn test_list_mailbox_contacts() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/contacts"))
@@ -401,7 +401,7 @@ async fn test_list_mailbox_contacts() {
 #[tokio::test]
 async fn test_get_mailbox_analytics() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/agent-mailboxes/mbx_1/analytics"))
@@ -426,7 +426,7 @@ async fn test_get_mailbox_analytics() {
 #[tokio::test]
 async fn test_update_auto_responder() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("PATCH"))
         .and(path("/v1/agent-mailboxes/mbx_1/auto-responder"))

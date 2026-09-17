@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `reqwest` 0.12 → 0.13, `hmac` 0.12 → 0.13, `sha2` 0.10 → 0.11.
+- TLS is now provided by `reqwest`'s `rustls` feature backed by `aws-lc-rs`
+  (the renamed `rustls-tls` feature used `ring`), so building this crate now
+  requires a C toolchain — see the "Build requirements" note in the README.
+
+### Security
+
+- Cleared 8 RUSTSEC advisories inherited transitively through `reqwest`
+  0.12.28's `h2`, `quinn-proto`, `rustls`, and `rustls-webpki` versions
+  (RUSTSEC-2026-0258, -0185, -0037, -0285, -0104, -0098, -0099, -0049) by
+  updating to `reqwest` 0.13.
+
 ## [0.7.0] - 2026-07-07
 
 ### Added

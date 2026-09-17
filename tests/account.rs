@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_get_account() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/account"))

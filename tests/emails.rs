@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_send_email() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails"))
@@ -35,7 +35,7 @@ async fn test_send_email() {
 #[tokio::test]
 async fn test_send_batch() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails/batch"))
@@ -82,7 +82,7 @@ async fn test_send_batch() {
 #[tokio::test]
 async fn test_get_email() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/emails/email-789"))
@@ -139,7 +139,7 @@ async fn test_get_email() {
 #[tokio::test]
 async fn test_list_emails() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/emails"))
@@ -190,7 +190,7 @@ async fn test_list_emails() {
 #[tokio::test]
 async fn test_cancel_email() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails/email-scheduled-1/cancel"))
@@ -214,7 +214,7 @@ async fn test_cancel_email() {
 #[tokio::test]
 async fn test_send_email_with_default() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails"))
@@ -241,7 +241,7 @@ async fn test_send_email_with_default() {
 #[tokio::test]
 async fn test_send_email_scheduled_with_tracking_override() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails"))
@@ -285,7 +285,7 @@ async fn test_send_email_scheduled_with_tracking_override() {
 #[tokio::test]
 async fn test_send_email_marketing_stream() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails"))
@@ -320,7 +320,7 @@ async fn test_send_email_marketing_stream() {
 #[tokio::test]
 async fn test_send_email_tracking_force_on() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails"))
@@ -350,7 +350,7 @@ async fn test_send_email_tracking_force_on() {
 #[tokio::test]
 async fn test_send_email_sandbox_response() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/emails"))

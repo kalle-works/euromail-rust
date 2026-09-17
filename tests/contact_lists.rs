@@ -8,7 +8,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_create_contact_list() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/contact-lists"))
@@ -44,7 +44,7 @@ async fn test_create_contact_list() {
 #[tokio::test]
 async fn test_list_contact_lists() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/contact-lists"))
@@ -74,7 +74,7 @@ async fn test_list_contact_lists() {
 #[tokio::test]
 async fn test_add_contact() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/contact-lists/cl-100/contacts"))
@@ -105,7 +105,7 @@ async fn test_add_contact() {
 #[tokio::test]
 async fn test_bulk_add_contacts() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("POST"))
         .and(path("/v1/contact-lists/cl-100/contacts"))
@@ -139,7 +139,7 @@ async fn test_bulk_add_contacts() {
 #[tokio::test]
 async fn test_delete_contact_list() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("DELETE"))
         .and(path("/v1/contact-lists/cl-100"))
@@ -153,7 +153,7 @@ async fn test_delete_contact_list() {
 #[tokio::test]
 async fn test_get_welcome_email_unconfigured() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/contact-lists/cl-100/welcome-email"))
@@ -180,7 +180,7 @@ async fn test_get_welcome_email_unconfigured() {
 #[tokio::test]
 async fn test_configure_welcome_email_with_inline_body() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("PUT"))
         .and(path("/v1/contact-lists/cl-100/welcome-email"))
@@ -224,7 +224,7 @@ async fn test_configure_welcome_email_with_inline_body() {
 #[tokio::test]
 async fn test_configure_welcome_email_with_template() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("PUT"))
         .and(path("/v1/contact-lists/cl-100/welcome-email"))
@@ -261,7 +261,7 @@ async fn test_configure_welcome_email_with_template() {
 #[tokio::test]
 async fn test_configure_welcome_email_disable() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("PUT"))
         .and(path("/v1/contact-lists/cl-100/welcome-email"))
@@ -300,7 +300,7 @@ async fn test_configure_welcome_email_disable() {
 #[tokio::test]
 async fn test_configure_welcome_email_validation_error() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     // Matches the real server's envelope for a validation failure — nested
     // under "error", code "VALIDATION_ERROR", type "validation_error" (see

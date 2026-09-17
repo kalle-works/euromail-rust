@@ -5,7 +5,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn test_gdpr_export_email() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("GET"))
         .and(path("/v1/gdpr/export"))
@@ -38,7 +38,7 @@ async fn test_gdpr_export_email() {
 #[tokio::test]
 async fn test_gdpr_erase_email() {
     let mock_server = MockServer::start().await;
-    let client = EuroMail::with_base_url("test-key", &mock_server.uri());
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
 
     Mock::given(method("DELETE"))
         .and(path("/v1/gdpr/erase"))
