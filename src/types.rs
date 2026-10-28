@@ -502,6 +502,9 @@ pub struct Domain {
     pub inbound_enabled: bool,
     /// DNS records keyed by purpose (e.g. `"spf"`, `"dkim"`, `"dmarc"`, `"return_path"`, `"bounce_spf"`).
     pub dns_records: HashMap<String, DnsRecord>,
+    /// DNS host detected for the domain (e.g. `"cloudflare"`), or `None` before the first check.
+    #[serde(default)]
+    pub detected_provider: Option<String>,
     pub verified_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,

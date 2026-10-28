@@ -9,7 +9,7 @@ Official Rust SDK for the [EuroMail](https://euromail.dev) transactional email s
 
 ```toml
 [dependencies]
-euromail = "0.3"
+euromail = "0.8"
 tokio = { version = "1", features = ["full"] }
 ```
 
