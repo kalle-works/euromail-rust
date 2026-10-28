@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-28
+
+### Added
+
+- `Domain::detected_provider`: the DNS host detected for the domain (for example `"cloudflare"`), or `None` until the first DNS check.
+
 ### Changed
 
+- The minimum supported Rust version is now 1.87. The `ctutils` release that fixes RUSTSEC-2026-0385 needs it.
 - `reqwest` 0.12 → 0.13, `hmac` 0.12 → 0.13, `sha2` 0.10 → 0.11.
 - TLS is now provided by `reqwest`'s `rustls` feature backed by `aws-lc-rs`
   (the renamed `rustls-tls` feature used `ring`), so building this crate now
@@ -20,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0.12.28's `h2`, `quinn-proto`, `rustls`, and `rustls-webpki` versions
   (RUSTSEC-2026-0258, -0185, -0037, -0285, -0104, -0098, -0099, -0049) by
   updating to `reqwest` 0.13.
+- The lockfile moves `rustls` to 0.23.46, `rustls-webpki` to 0.103.16, `webpki-root-certs` to 1.0.11, `ctutils` to 0.4.4 and `tokio` to 1.54.1, which clears RUSTSEC-2026-0346, -0347, -0348, -0349, -0382, -0383 and -0385, and the `tokio` soundness warning RUSTSEC-2026-0386. The yanked `yoke-derive` 0.8.3 is replaced by 0.8.4.
 
 ## [0.7.0] - 2026-07-07
 
