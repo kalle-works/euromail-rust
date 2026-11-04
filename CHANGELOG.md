@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-04
+
+### Changed
+
+- `DomainAnalytics::open_rate` and `click_rate` are now `Option<f64>` and can be `None`. The API returns `null` when no delivered mail to that domain had open or click tracking, because 0% would say nobody opened it. This changes the field's type, so code that reads these fields needs updating.
+
+### Added
+
+- `DomainAnalytics::opens_tracked` and `clicks_tracked` show how many delivered emails each rate is out of.
+
 ## [0.8.0] - 2026-10-28
 
 ### Added

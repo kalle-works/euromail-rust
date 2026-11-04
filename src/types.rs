@@ -933,8 +933,9 @@ pub struct DomainAnalyticsQuery {
     pub limit: Option<i64>,
 }
 
-/// Deserialize a float that may be encoded as a JSON string (e.g. `"0.0"`).
-fn deserialize_f64_or_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
+/// Deserialize a float that may be encoded as a JSON string (e.g. `"0.0"`), where
+/// `null` means the value is unknown.
+fn deserialize_optional_f64_or_string<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -944,9 +945,10 @@ where
         Float(f64),
         Str(String),
     }
-    match FloatOrString::deserialize(deserializer)? {
-        FloatOrString::Float(f) => Ok(f),
-        FloatOrString::Str(s) => s.parse().map_err(serde::de::Error::custom),
+    match Option::<FloatOrString>::deserialize(deserializer)? {
+        None => Ok(None),
+        Some(FloatOrString::Float(f)) => Ok(Some(f)),
+        Some(FloatOrString::Str(s)) => s.parse().map(Some).map_err(serde::de::Error::custom),
     }
 }
 
@@ -957,10 +959,18 @@ pub struct DomainAnalytics {
     pub sent: i64,
     pub delivered: i64,
     pub bounced: i64,
-    #[serde(deserialize_with = "deserialize_f64_or_string")]
-    pub open_rate: f64,
-    #[serde(deserialize_with = "deserialize_f64_or_string")]
-    pub click_rate: f64,
+    /// Delivered emails to this domain that carried an open pixel.
+    #[serde(default)]
+    pub opens_tracked: i64,
+    /// Delivered emails to this domain whose links were tracked.
+    #[serde(default)]
+    pub clicks_tracked: i64,
+    /// `None` when no delivered email to this domain had open tracking.
+    #[serde(default, deserialize_with = "deserialize_optional_f64_or_string")]
+    pub open_rate: Option<f64>,
+    /// `None` when no delivered email to this domain had click tracking.
+    #[serde(default, deserialize_with = "deserialize_optional_f64_or_string")]
+    pub click_rate: Option<f64>,
 }
 
 /// Per-domain analytics response.

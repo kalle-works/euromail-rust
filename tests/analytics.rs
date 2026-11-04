@@ -127,7 +127,43 @@ async fn test_get_analytics_domains() {
     assert_eq!(result.data.len(), 1);
     assert_eq!(result.data[0].domain, "example.com");
     assert_eq!(result.data[0].sent, 500);
-    assert!((result.data[0].open_rate - 0.45).abs() < f64::EPSILON);
+    assert_eq!(result.data[0].open_rate, Some(0.45));
+}
+
+/// A domain whose mail had no tracking has no rate: `null`, not 0%. A rate
+/// encoded as a string still reads.
+#[tokio::test]
+async fn test_get_analytics_domains_reads_a_missing_rate() {
+    let mock_server = MockServer::start().await;
+    let client = EuroMail::with_base_url("test-key", mock_server.uri());
+
+    Mock::given(method("GET"))
+        .and(path("/v1/analytics/domains"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [
+                {
+                    "domain": "example.com",
+                    "sent": 500,
+                    "delivered": 490,
+                    "bounced": 10,
+                    "opens_tracked": 0,
+                    "clicks_tracked": 100,
+                    "open_rate": null,
+                    "click_rate": "12.5"
+                }
+            ],
+            "period": {
+                "from": "2026-02-07",
+                "to": "2026-03-07"
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let result = client.get_analytics_domains(None).await.unwrap();
+    assert_eq!(result.data[0].open_rate, None);
+    assert_eq!(result.data[0].click_rate, Some(12.5));
+    assert_eq!(result.data[0].clicks_tracked, 100);
 }
 
 #[tokio::test]
