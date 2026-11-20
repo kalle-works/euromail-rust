@@ -4,7 +4,7 @@ use crate::client::EuroMail;
 use crate::errors::EuroMailError;
 use crate::types::{
     Domain, DomainVerificationResult, ListParams, PaginatedResponse, TrackingDomainResponse,
-    TrackingDomainVerification,
+    TrackingDomainVerification, UpdateDomainParams,
 };
 
 #[derive(Serialize)]
@@ -26,6 +26,18 @@ impl EuroMail {
     /// Get a domain by ID.
     pub async fn get_domain(&self, domain_id: &str) -> Result<Domain, EuroMailError> {
         self.get(&format!("/v1/domains/{domain_id}")).await
+    }
+
+    /// Update a domain's settings. Only the fields set in `params` change.
+    ///
+    /// Requires the `domains:manage` scope.
+    pub async fn update_domain(
+        &self,
+        domain_id: &str,
+        params: &UpdateDomainParams,
+    ) -> Result<Domain, EuroMailError> {
+        self.patch(&format!("/v1/domains/{domain_id}"), params)
+            .await
     }
 
     /// Trigger DNS verification for a domain.

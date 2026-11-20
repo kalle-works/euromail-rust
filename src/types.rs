@@ -505,9 +505,22 @@ pub struct Domain {
     /// DNS host detected for the domain (e.g. `"cloudflare"`), or `None` before the first check.
     #[serde(default)]
     pub detected_provider: Option<String>,
+    /// When `true`, mail from this domain is never sent in plain text. Missing in
+    /// responses from older servers, which read as `false`.
+    #[serde(default)]
+    pub require_tls: bool,
     pub verified_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+}
+
+/// Parameters for updating a domain. Only provided fields are changed; an empty
+/// body changes nothing.
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct UpdateDomainParams {
+    /// Never send this domain's mail in plain text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub require_tls: Option<bool>,
 }
 
 /// A DNS record required for domain verification.
