@@ -174,6 +174,12 @@ if verification.fully_verified {
     println!("Domain verified!");
 }
 
+// Never send this domain's mail in plain text (needs the domains:manage scope)
+let domain = client
+    .update_domain(&domain.id, &UpdateDomainParams { require_tls: Some(true) })
+    .await?;
+assert!(domain.require_tls);
+
 // List all domains
 let domains = client.list_domains(None).await?;
 

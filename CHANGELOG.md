@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `EuroMail::update_domain` and `UpdateDomainParams`: change a domain's settings with `PATCH /v1/domains/{id}`. Only fields that are set are sent.
+- `Domain::require_tls`: whether mail from the domain is never sent in plain text. Reads as `false` when the server omits it.
+
 ## [0.8.0] - 2026-10-28
 
 ### Added
